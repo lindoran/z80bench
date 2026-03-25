@@ -1,0 +1,16 @@
+# z80bench annotation file
+
+[meta]
+name = monz80_z88dk
+load_addr = 0x0000
+
+[region]
+offset = 139
+end = 140
+type = DATA_BYTE
+
+[region]
+offset = 141
+end = 158
+type = DATA_STRING
+

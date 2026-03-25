@@ -1,0 +1,11 @@
+# z80bench annotation file
+
+[meta]
+name = Test Project
+load_addr = 0x0000
+
+[region]
+offset = 0
+end = 1023
+type = CODE
+
