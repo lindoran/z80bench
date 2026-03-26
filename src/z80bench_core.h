@@ -204,6 +204,7 @@ const Symbol *symbols_get(const SymData *sym, int i);
 int      symbols_get_safe(const SymData *sym, int i, Symbol *out);
 int      symbols_add(SymData *sym, const Symbol *s);
 int      symbols_remove(SymData *sym, int i);
+int      symbols_replace(SymData *sym, int i, const Symbol *s);
 
 /* --------------------------------------------------------------------------
  * Module: Segments / Map (memmap.c)

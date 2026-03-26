@@ -2,6 +2,12 @@
 #include <string.h>
 #include "z80bench.h"
 
+#define GUI_LOG(app, fmt, ...) \
+    G_STMT_START { \
+        if ((app) && g_getenv("Z80BENCH_GUI_DEBUG")) \
+            g_printerr("[z80bench-gui] " fmt "\n", ##__VA_ARGS__); \
+    } G_STMT_END
+
 typedef struct {
     Project   project;
     GtkWidget *window;
@@ -11,7 +17,19 @@ typedef struct {
     char       project_path[512];
     int        pending_listing_addr;
     int        pending_listing_retries;
+    gboolean   ui_busy;
+    gboolean   pending_segment_reload;
+    gboolean   segment_save_idle_queued;
 } App;
+
+typedef struct {
+    GtkWidget *paned;
+    int        pos;
+} PanedPosApply;
+
+typedef struct {
+    GtkWidget *window;
+} WindowSizeUnlock;
 
 /* --------------------------------------------------------------------------
  * Forward declarations
@@ -38,11 +56,67 @@ typedef struct {
  * Helpers
  * -------------------------------------------------------------------------- */
 
-static void reload_listing(gpointer user_data);  /* forward */
-static void queue_listing_jump(gpointer user_data, int addr);  /* forward */
-static gboolean apply_pending_listing_jump(gpointer user_data);  /* forward */
+static gboolean controller_apply_pending_jump(gpointer user_data);  /* forward */
+static void controller_request_jump(gpointer user_data, int addr);  /* forward */
+static void controller_reload_and_render(gpointer user_data);  /* forward */
+static void controller_segment_command(gpointer data, const UISegmentCmd *cmd,
+                                       UISegmentCmdResult *res);  /* forward */
+static void controller_segment_save(gpointer data, const UISegmentSaveRequest *req);  /* forward */
+static gboolean controller_segment_save_idle(gpointer user_data);  /* forward */
+static gboolean controller_apply_paned_position_idle(gpointer user_data);  /* forward */
+static gboolean controller_unlock_window_size_idle(gpointer user_data);  /* forward */
 
-static void load_project_ui(App *app) {
+static int controller_pick_paned_position(App *app, int current_pos) {
+    int win_w = gtk_widget_get_width(app->window);
+    int min_pos = 300;
+    int max_pos = (win_w > 700) ? (win_w - 260) : 9000;
+    if (max_pos < min_pos) max_pos = min_pos;
+
+    int fallback = (win_w > 0) ? (int)(win_w * 0.62) : 630;
+    if (fallback < min_pos) fallback = min_pos;
+    if (fallback > max_pos) fallback = max_pos;
+
+    if (current_pos <= 0)
+        return fallback;
+    if (current_pos < min_pos)
+        return min_pos;
+    if (current_pos > max_pos)
+        return max_pos;
+    return current_pos;
+}
+
+static gboolean controller_apply_paned_position_idle(gpointer user_data) {
+    PanedPosApply *pp = user_data;
+    if (!pp || !pp->paned) {
+        g_free(pp);
+        return G_SOURCE_REMOVE;
+    }
+    gtk_paned_set_position(GTK_PANED(pp->paned), pp->pos);
+    g_free(pp);
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean controller_unlock_window_size_idle(gpointer user_data) {
+    WindowSizeUnlock *u = user_data;
+    if (!u) return G_SOURCE_REMOVE;
+    if (u->window)
+        gtk_widget_set_size_request(u->window, -1, -1);
+    g_free(u);
+    return G_SOURCE_REMOVE;
+}
+
+static void controller_render(App *app) {
+    int paned_pos = controller_pick_paned_position(
+        app, gtk_paned_get_position(GTK_PANED(app->paned)));
+    int win_w = gtk_widget_get_width(app->window);
+    int win_h = gtk_widget_get_height(app->window);
+    GUI_LOG(app, "render begin map=%d pending=0x%04X retries=%d win=%dx%d paned=%d",
+            memmap_count(app->project.map),
+            app->pending_listing_addr >= 0 ? (app->pending_listing_addr & 0xFFFF) : 0xFFFF,
+            app->pending_listing_retries, win_w, win_h, paned_pos);
+    if (win_w > 100 && win_h > 100)
+        gtk_widget_set_size_request(app->window, win_w, win_h);
+
     char title[512];
     snprintf(title, sizeof(title), "z80bench — %s", app->project.name);
     gtk_window_set_title(GTK_WINDOW(app->window), title);
@@ -51,20 +125,40 @@ static void load_project_ui(App *app) {
     GtkWidget *panels  = ui_panels_new(&app->project, app->window,
                                        app->project_path, listing);
     ui_listing_set_panels(listing, panels);
-    ui_panels_set_reload_cb(panels, reload_listing, app);
-    ui_panels_set_jump_cb(panels, queue_listing_jump, app);
+    ui_panels_set_reload_cb(panels, controller_reload_and_render, app);
+    ui_panels_set_jump_cb(panels, controller_request_jump, app);
+    ui_panels_set_segment_command_cb(panels, controller_segment_command, app);
+    ui_panels_set_segment_save_cb(panels, controller_segment_save, app);
 
     app->listing_outer = listing;
     app->panels_outer = panels;
 
     gtk_paned_set_start_child(GTK_PANED(app->paned), listing);
     gtk_paned_set_end_child(GTK_PANED(app->paned), panels);
+    gtk_paned_set_resize_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), FALSE);
+    gtk_paned_set_position(GTK_PANED(app->paned), paned_pos);
+
+    PanedPosApply *pp = g_new0(PanedPosApply, 1);
+    pp->paned = app->paned;
+    pp->pos = paned_pos;
+    g_idle_add(controller_apply_paned_position_idle, pp);
+
+    WindowSizeUnlock *u = g_new0(WindowSizeUnlock, 1);
+    u->window = app->window;
+    g_idle_add(controller_unlock_window_size_idle, u);
+    GUI_LOG(app, "render end map=%d", memmap_count(app->project.map));
 }
 
-/* Reload callback — fired when a Direct Byte / Define Message map range changes */
-static void reload_listing(gpointer user_data) {
+/* Controller: full reload flow for map/segment changes */
+static void controller_reload_and_render(gpointer user_data) {
     App *app = user_data;
-    if (!app->project.rom || !app->project_path[0]) return;
+    if (!app->project.rom || !app->project_path[0] || app->ui_busy) return;
+    GUI_LOG(app, "reload begin map=%d", memmap_count(app->project.map));
+    app->ui_busy = TRUE;
+    gtk_widget_set_sensitive(app->paned, FALSE);
 
     /* 1. Sync map entries → ann regions */
     project_sync_map_to_regions(&app->project);
@@ -88,20 +182,27 @@ static void reload_listing(gpointer user_data) {
     project_save(&app->project, app->project_path);
 
     /* 4. Rebuild the listing and panels widgets */
-    load_project_ui(app);
+    controller_render(app);
     if (app->pending_listing_addr >= 0) {
-        app->pending_listing_retries = 8;
-        g_timeout_add(16, apply_pending_listing_jump, app);
+        /* Try immediately first; if the listing has not realized yet, retry. */
+        controller_apply_pending_jump(app);
+        if (app->pending_listing_retries < 120)
+            app->pending_listing_retries = 120;
+        g_timeout_add(16, controller_apply_pending_jump, app);
     }
+    gtk_widget_set_sensitive(app->paned, TRUE);
+    app->ui_busy = FALSE;
+    GUI_LOG(app, "reload end map=%d", memmap_count(app->project.map));
 }
 
-static void queue_listing_jump(gpointer user_data, int addr) {
+static void controller_request_jump(gpointer user_data, int addr) {
     App *app = user_data;
     app->pending_listing_addr = addr;
-    app->pending_listing_retries = 8;
+    app->pending_listing_retries = 120;
+    GUI_LOG(app, "jump request 0x%04X", addr & 0xFFFF);
 }
 
-static gboolean apply_pending_listing_jump(gpointer user_data) {
+static gboolean controller_apply_pending_jump(gpointer user_data) {
     App *app = user_data;
     if (app->pending_listing_addr >= 0 && app->listing_outer) {
         gboolean done = ui_listing_select_address(app->listing_outer,
@@ -117,6 +218,101 @@ static gboolean apply_pending_listing_jump(gpointer user_data) {
         }
         app->pending_listing_addr = -1;
         app->pending_listing_retries = 0;
+    }
+    return G_SOURCE_REMOVE;
+}
+
+static void controller_segment_command(gpointer data, const UISegmentCmd *cmd,
+                                       UISegmentCmdResult *res) {
+    App *app = data;
+    if (!res) return;
+    memset(res, 0, sizeof(*res));
+    res->ok = FALSE;
+    res->resulting_index = -1;
+
+    if (!app || !cmd) {
+        snprintf(res->error, sizeof(res->error), "Invalid segment command context.");
+        return;
+    }
+    if (app->ui_busy) {
+        snprintf(res->error, sizeof(res->error), "UI is busy reloading. Try again.");
+        return;
+    }
+
+    if (cmd->type == UI_SEGMENT_CMD_ADD) {
+        if (!app->project.map) {
+            app->project.map = memmap_new();
+            if (!app->project.map) {
+                snprintf(res->error, sizeof(res->error), "Out of memory creating segment map.");
+                return;
+            }
+        }
+        if (memmap_add(app->project.map, &cmd->entry) != 0) {
+            snprintf(res->error, sizeof(res->error), "Failed to add segment.");
+            return;
+        }
+        res->ok = TRUE;
+        res->resulting_index = memmap_count(app->project.map) - 1;
+        GUI_LOG(app, "segment add [%04X-%04X] type=%d map=%d",
+                cmd->entry.start & 0xFFFF, cmd->entry.end & 0xFFFF,
+                (int)cmd->entry.type, memmap_count(app->project.map));
+        return;
+    }
+
+    if (cmd->type == UI_SEGMENT_CMD_UPDATE) {
+        if (!app->project.map || memmap_replace(app->project.map, cmd->index, &cmd->entry) != 0) {
+            snprintf(res->error, sizeof(res->error), "Failed to update segment.");
+            return;
+        }
+        res->ok = TRUE;
+        res->resulting_index = cmd->index;
+        GUI_LOG(app, "segment update idx=%d [%04X-%04X] type=%d map=%d",
+                cmd->index, cmd->entry.start & 0xFFFF, cmd->entry.end & 0xFFFF,
+                (int)cmd->entry.type, memmap_count(app->project.map));
+        return;
+    }
+
+    if (cmd->type == UI_SEGMENT_CMD_REMOVE) {
+        if (!app->project.map || memmap_remove(app->project.map, cmd->index) != 0) {
+            snprintf(res->error, sizeof(res->error), "Failed to remove segment.");
+            return;
+        }
+        res->ok = TRUE;
+        {
+            int n = memmap_count(app->project.map);
+            res->resulting_index = (cmd->index < n) ? cmd->index : (n - 1);
+        }
+        GUI_LOG(app, "segment remove idx=%d map=%d", cmd->index, memmap_count(app->project.map));
+        return;
+    }
+
+    snprintf(res->error, sizeof(res->error), "Unknown segment command.");
+}
+
+static void controller_segment_save(gpointer data, const UISegmentSaveRequest *req) {
+    App *app = data;
+    if (!app || !req) return;
+    GUI_LOG(app, "segment save needs_reload=%d have_jump=%d jump=0x%04X map=%d",
+            req->needs_reload ? 1 : 0, req->have_jump ? 1 : 0,
+            req->have_jump ? (req->jump_addr & 0xFFFF) : 0xFFFF,
+            memmap_count(app->project.map));
+    if (req->have_jump)
+        controller_request_jump(app, req->jump_addr);
+    if (req->needs_reload)
+        app->pending_segment_reload = TRUE;
+    if (!app->segment_save_idle_queued) {
+        app->segment_save_idle_queued = TRUE;
+        g_idle_add(controller_segment_save_idle, app);
+    }
+}
+
+static gboolean controller_segment_save_idle(gpointer user_data) {
+    App *app = user_data;
+    if (!app) return G_SOURCE_REMOVE;
+    app->segment_save_idle_queued = FALSE;
+    if (app->pending_segment_reload) {
+        app->pending_segment_reload = FALSE;
+        controller_reload_and_render(app);
     }
     return G_SOURCE_REMOVE;
 }
@@ -189,7 +385,7 @@ static void on_import_create(GtkButton *button, gpointer user_data) {
         strncpy(app->project_path, proj_dir, sizeof(app->project_path) - 1);
         app->pending_listing_addr = -1;
         app->pending_listing_retries = 0;
-        load_project_ui(app);
+        controller_render(app);
     } else {
         GtkAlertDialog *alert = gtk_alert_dialog_new("Could not create project.");
         gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
@@ -306,7 +502,7 @@ static void on_open_project_response(GObject *source, GAsyncResult *res, gpointe
     app->project_path[0] = '\0';
     if (project_open(&app->project, proj_dir) == 0) {
         strncpy(app->project_path, proj_dir, sizeof(app->project_path) - 1);
-        load_project_ui(app);
+        controller_render(app);
     } else {
         GtkAlertDialog *alert = gtk_alert_dialog_new("Could not open project.");
         gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
@@ -440,6 +636,10 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     app->pending_listing_addr = -1;
     app->pending_listing_retries = 0;
     gtk_paned_set_position(GTK_PANED(app->paned), 630);
+    gtk_paned_set_resize_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), FALSE);
     gtk_widget_set_vexpand(app->paned, TRUE);
     gtk_box_append(GTK_BOX(main_box), app->paned);
 
@@ -457,6 +657,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
 int main(int argc, char **argv) {
     App app;
     memset(&app, 0, sizeof(App));
+    app.ui_busy = FALSE;
 
     GtkApplication *gtk_app =
         gtk_application_new("io.github.z80bench", G_APPLICATION_DEFAULT_FLAGS);

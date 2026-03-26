@@ -479,25 +479,36 @@ gboolean ui_listing_select_address(GtkWidget *outer, int addr) {
     gtk_list_box_select_row(GTK_LIST_BOX(list_box), best);
     gtk_widget_grab_focus(GTK_WIDGET(best));
 
-    if (scrolled) {
-        GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
-        graphene_rect_t bounds;
-        if (vadj && gtk_widget_get_realized(scrolled) &&
-            gtk_widget_compute_bounds(GTK_WIDGET(best), GTK_WIDGET(list_box), &bounds)) {
-            double top = bounds.origin.y;
-            double bottom = top + bounds.size.height;
-            double value = gtk_adjustment_get_value(vadj);
-            double page = gtk_adjustment_get_page_size(vadj);
-            if (top < value) {
-                gtk_adjustment_set_value(vadj, top);
-            } else if (bottom > value + page) {
-                gtk_adjustment_set_value(vadj, bottom - page);
-            }
-            return TRUE;
-        }
+    if (!scrolled) return TRUE;
+
+    GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
+    graphene_rect_t bounds;
+    if (!vadj) return FALSE;
+    if (!gtk_widget_get_realized(scrolled)) return FALSE;
+    if (!gtk_widget_compute_bounds(GTK_WIDGET(best), GTK_WIDGET(list_box), &bounds))
+        return FALSE;
+
+    double top = bounds.origin.y;
+    double bottom = top + bounds.size.height;
+    double value = gtk_adjustment_get_value(vadj);
+    double page = gtk_adjustment_get_page_size(vadj);
+    double lower = gtk_adjustment_get_lower(vadj);
+    double upper = gtk_adjustment_get_upper(vadj);
+    if (page <= 0.0 || bounds.size.height <= 0.0)
+        return FALSE;
+
+    /* Keep selected row comfortably visible and avoid "selected but off-screen". */
+    if (top < value || bottom > value + page) {
+        double target = top - (page * 0.30);
+        double max_value = upper - page;
+        if (max_value < lower) max_value = lower;
+        if (target < lower) target = lower;
+        if (target > max_value) target = max_value;
+        gtk_adjustment_set_value(vadj, target);
     }
 
-    return scrolled ? gtk_widget_get_realized(scrolled) : TRUE;
+    value = gtk_adjustment_get_value(vadj);
+    return (top >= value && bottom <= value + page);
 }
 
 /* ==========================================================================
@@ -514,12 +525,28 @@ typedef struct {
     GtkWidget *mode_mnem_btn;
     GtkWidget *mode_comm_btn;
     int        selected_row;
+    gulong     panels_destroy_handler;
 } ListingCtx;
 
 static void listing_ctx_free(gpointer p) { g_free(p); }
 
 static void on_panels_destroyed(GtkWidget *panels, gpointer ud) {
-    ((ListingCtx *)ud)->panels = NULL;
+    ListingCtx *ctx = (ListingCtx *)ud;
+    ctx->panels = NULL;
+    ctx->panels_destroy_handler = 0;
+}
+
+static void bind_panels(ListingCtx *ctx, GtkWidget *panels) {
+    if (!ctx) return;
+    if (ctx->panels && ctx->panels_destroy_handler) {
+        g_signal_handler_disconnect(ctx->panels, ctx->panels_destroy_handler);
+    }
+    ctx->panels = panels;
+    ctx->panels_destroy_handler = 0;
+    if (panels) {
+        ctx->panels_destroy_handler =
+            g_signal_connect(panels, "destroy", G_CALLBACK(on_panels_destroyed), ctx);
+    }
 }
 
 static void on_row_selected(GtkListBox *lb, GtkListBoxRow *row, gpointer ud) {
@@ -531,6 +558,7 @@ static void on_row_selected(GtkListBox *lb, GtkListBoxRow *row, gpointer ud) {
     if (!ctx->panels || !gtk_list_box_row_is_selected(row)) return;
     RowData *rd = g_object_get_data(G_OBJECT(row), "rd");
     if (!rd) return;
+    ui_panels_clear_selection(ctx->panels);
     ui_panels_update_selection(ctx->panels,
                                &rd->project->lines[rd->line_index],
                                rd->line_index);
@@ -590,6 +618,17 @@ static void on_search_close(GtkButton *b, gpointer ud) {
     ctx->selected_row = -1;
 }
 
+static void on_listing_click_pressed(GtkGestureClick *gesture, int n_press,
+                                     double x, double y, gpointer ud) {
+    (void)gesture;
+    (void)n_press;
+    (void)x;
+    (void)y;
+    ListingCtx *ctx = ud;
+    if (ctx && ctx->panels)
+        ui_panels_clear_selection(ctx->panels);
+}
+
 static gboolean on_key_pressed(GtkEventControllerKey *c, guint kv,
                                 guint kc, GdkModifierType st, gpointer ud) {
     (void)kc;
@@ -607,6 +646,8 @@ static gboolean on_key_pressed(GtkEventControllerKey *c, guint kv,
     }
     if (kv == GDK_KEY_Escape) {
         gtk_list_box_unselect_all(GTK_LIST_BOX(ctx->list_box));
+        if (ctx->panels)
+            ui_panels_clear_selection(ctx->panels);
         ctx->selected_row = -1;
         return TRUE;
     }
@@ -619,7 +660,7 @@ static gboolean on_key_pressed(GtkEventControllerKey *c, guint kv,
 
 void ui_listing_set_panels(GtkWidget *outer, GtkWidget *panels) {
     ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
-    if (ctx) ctx->panels = panels;
+    bind_panels(ctx, panels);
 }
 
 /* ==========================================================================
@@ -701,10 +742,11 @@ GtkWidget *ui_listing_new(Project *p, GtkWidget *panels) {
     ctx->mode_mnem_btn   = mode_mnem;
     ctx->mode_comm_btn   = mode_comm;
     ctx->selected_row    = -1;
+    ctx->panels_destroy_handler = 0;
 
     g_object_set_data_full(G_OBJECT(outer), "listing-ctx", ctx, listing_ctx_free);
 
-    g_signal_connect(panels,    "destroy",      G_CALLBACK(on_panels_destroyed), ctx);
+    bind_panels(ctx, panels);
     g_signal_connect(list_box,  "row-selected", G_CALLBACK(on_row_selected),     ctx);
     g_signal_connect(entry,     "activate",     G_CALLBACK(on_search_activate),  ctx);
     g_signal_connect(next_btn,  "clicked",      G_CALLBACK(on_search_next),      ctx);
@@ -714,6 +756,10 @@ GtkWidget *ui_listing_new(Project *p, GtkWidget *panels) {
     gtk_event_controller_set_propagation_phase(key, GTK_PHASE_CAPTURE);
     g_signal_connect(key, "key-pressed", G_CALLBACK(on_key_pressed), ctx);
     gtk_widget_add_controller(outer, key);
+
+    GtkGesture *click = gtk_gesture_click_new();
+    gtk_widget_add_controller(list_box, GTK_EVENT_CONTROLLER(click));
+    g_signal_connect(click, "pressed", G_CALLBACK(on_listing_click_pressed), ctx);
 
     return outer;
 }

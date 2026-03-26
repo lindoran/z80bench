@@ -141,6 +141,12 @@ int symbols_remove(SymData *sym, int i) {
     return 0;
 }
 
+int symbols_replace(SymData *sym, int i, const Symbol *s) {
+    if (!sym || !s || i < 0 || i >= sym->nsymbols) return -1;
+    sym->symbols[i] = *s;
+    return 0;
+}
+
 int symbols_get_safe(const SymData *sym, int i, Symbol *out) {
     if (!sym || !out || i < 0 || i >= sym->nsymbols) return -1;
     *out = sym->symbols[i];

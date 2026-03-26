@@ -4,21 +4,28 @@
 It loads a ROM project directory, disassembles CODE regions with `z80dasm`,
 tracks labels/comments/segments/symbols, and exports z88dk-compatible source.
 
-## Current Shape
+## Current Shape (March 2026)
 
 - C99 backend with a GTK4 UI
 - Project files live in one directory: `rom.bin`, `listing.mnm`,
   `annotations.ann`, `segments.map`, `symbols.sym`
 - Segments, symbols, and annotations are editable in-app
-- The build currently succeeds with `make`
+- Side panels use stateless click behavior:
+  - single click jumps in listing
+  - double click opens editor dialog
+- Segment + symbol dialogs now share a similar flow:
+  - `Add`/`Update`/`Remove` apply immediately
+  - `Close` exits dialog
+- Notes fields have been removed from segment/symbol dialogs
+- The build succeeds with `make`
 
 ## Known Rough Edges
 
-- The docs are being refreshed to match the current code
 - The listing view is still a `GtkListBox`-based implementation, not the
   virtualized `GtkListView` described in the older design notes
 - The references workflow is still incomplete
-- Segment nesting and overwrite behavior is being tightened up
+- Segment editor `Close` commits/reloads+jumps; window `X` close path still
+  follows normal destroy behavior and should be treated as a separate flow
 - Legacy `project.*` filenames still open, but new projects save with the
   clearer file names above
 

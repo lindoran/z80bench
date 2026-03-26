@@ -1,5 +1,28 @@
 # z80bench — UI Specification
 
+> Implementation note (March 2026):
+> This document contains both target/spec language and historical notes.
+> For current behavior, prefer this section plus `docs/STATUS.md`.
+
+## Current UI Behavior (Implemented)
+
+- Main window: toolbar + listing (left) + right panel stack (segments, symbols, annotation).
+- Side panels (`SEGMENTS` / `SYMBOLS`) do not maintain persistent row selection state.
+  - Single click: jump listing.
+  - Double click: open editor dialog.
+- Segment dialog:
+  - `Add` / `Update` / `Remove` apply immediately in memory.
+  - `Close` closes dialog and triggers segment save/reload+jump flow when needed.
+  - Notes input is removed.
+- Symbol dialog:
+  - `Add` / `Update` / `Remove` apply immediately in memory.
+  - `Close` closes dialog and jumps to last symbol address touched.
+  - Notes input is removed.
+- Annotation `Label` edits sync to symbol table (`SYM_JUMP_LABEL`).
+- Symbol dialog edits for `SYM_JUMP_LABEL` sync back to listing/annotation labels.
+- Listing remains `GtkListBox` based (not virtualized `GtkListView` yet).
+- References panel is still planned, not shipped.
+
 Desktop workbench application. GTK4, dark mode by default (follows system theme,
 requests dark colour scheme on startup). Single main window, no MDI, one project
 open at a time.

@@ -1,5 +1,0 @@
-# z80bench segment map
-# format: start<TAB>end<TAB>type<TAB>name<TAB>notes
-
-0x008D	0x009E	DEFINE_MSG	message @ 0x008D	
-0x008B	0x008C	DIRECT_BYTE	direct bytes @ 0x008B-0x008C	

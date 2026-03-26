@@ -4,6 +4,36 @@
 #include "z80bench_core.h"
 #include <gtk/gtk.h>
 
+typedef enum {
+    UI_SEGMENT_CMD_ADD = 0,
+    UI_SEGMENT_CMD_UPDATE = 1,
+    UI_SEGMENT_CMD_REMOVE = 2
+} UISegmentCmdType;
+
+typedef struct {
+    UISegmentCmdType type;
+    int              index;
+    MapEntry         entry;
+} UISegmentCmd;
+
+typedef struct {
+    gboolean ok;
+    int      resulting_index;
+    char     error[DISASM_COMMENT_MAX];
+} UISegmentCmdResult;
+
+typedef void (*UISegmentCommandFn)(gpointer data,
+                                   const UISegmentCmd *cmd,
+                                   UISegmentCmdResult *res);
+
+typedef struct {
+    gboolean needs_reload;
+    gboolean have_jump;
+    int      jump_addr;
+} UISegmentSaveRequest;
+
+typedef void (*UISegmentSaveFn)(gpointer data, const UISegmentSaveRequest *req);
+
 /* --------------------------------------------------------------------------
  * Module: UI Listing (ui_listing.c)
  * -------------------------------------------------------------------------- */
@@ -19,8 +49,11 @@ GtkWidget *ui_panels_new(Project *p, GtkWidget *window, const char *project_path
                          GtkWidget *listing_outer);
 void ui_panels_update_selection(GtkWidget *panels, DisasmLine *dl, int line_index);
 void ui_panels_refresh_symbols(GtkWidget *panels);
+void ui_panels_clear_selection(GtkWidget *panels);
 void ui_panels_set_reload_cb(GtkWidget *panels, void (*cb)(gpointer), gpointer data);
 void ui_panels_set_jump_cb(GtkWidget *panels, void (*cb)(gpointer, int), gpointer data);
+void ui_panels_set_segment_command_cb(GtkWidget *panels, UISegmentCommandFn cb, gpointer data);
+void ui_panels_set_segment_save_cb(GtkWidget *panels, UISegmentSaveFn cb, gpointer data);
 void ui_panels_open_segment_editor(GtkWidget *panels, int start_offset, int end_offset);
 void ui_panels_open_segment_editor_prefill(GtkWidget *panels, int start_offset,
                                            int end_offset, const char *name,
