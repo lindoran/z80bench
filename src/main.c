@@ -11,9 +11,16 @@
 typedef struct {
     Project   project;
     GtkWidget *window;
+    GtkWidget *main_vpaned;
     GtkWidget *paned;
+    GtkWidget *dock_paned;
     GtkWidget *listing_outer;
     GtkWidget *panels_outer;
+    GtkWidget *hex_view;
+    GtkWidget *search_entry;
+    GtkWidget *search_mode_addr;
+    GtkWidget *search_mode_mnem;
+    GtkWidget *search_mode_comment;
     char       project_path[512];
     int        pending_listing_addr;
     int        pending_listing_retries;
@@ -65,6 +72,17 @@ static void controller_segment_save(gpointer data, const UISegmentSaveRequest *r
 static gboolean controller_segment_save_idle(gpointer user_data);  /* forward */
 static gboolean controller_apply_paned_position_idle(gpointer user_data);  /* forward */
 static gboolean controller_unlock_window_size_idle(gpointer user_data);  /* forward */
+static void controller_listing_visible_changed(gpointer user_data, int addr);  /* forward */
+static void controller_focus_search(gpointer user_data);  /* forward */
+
+static void app_render_hex_dump(App *app);  /* forward */
+static void app_sync_hex_to_addr(App *app, int addr);  /* forward */
+static GtkWidget *build_bottom_dock(App *app);  /* forward */
+static UISearchMode app_get_search_mode(App *app);  /* forward */
+static void on_dock_search_activate(GtkEntry *entry, gpointer user_data);  /* forward */
+static void on_dock_search_next(GtkButton *button, gpointer user_data);  /* forward */
+static void on_main_paned_position_changed(GObject *obj, GParamSpec *pspec,
+                                           gpointer user_data);  /* forward */
 
 static int controller_pick_paned_position(App *app, int current_pos) {
     int win_w = gtk_widget_get_width(app->window);
@@ -105,6 +123,169 @@ static gboolean controller_unlock_window_size_idle(gpointer user_data) {
     return G_SOURCE_REMOVE;
 }
 
+static void app_render_hex_dump(App *app) {
+    if (!app || !app->hex_view) return;
+    GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(app->hex_view));
+    if (!buf) return;
+
+    if (!app->project.rom || app->project.rom_size <= 0) {
+        gtk_text_buffer_set_text(buf, "No ROM loaded.", -1);
+        return;
+    }
+
+    GString *s = g_string_sized_new((gsize)app->project.rom_size * 6);
+    for (int off = 0; off < app->project.rom_size; off += 16) {
+        int addr = app->project.load_addr + off;
+        g_string_append_printf(s, "%08X: ", addr & 0xFFFFFFFF);
+        for (int i = 0; i < 16; i++) {
+            if (off + i < app->project.rom_size)
+                g_string_append_printf(s, "%02X ", app->project.rom[off + i]);
+            else
+                g_string_append(s, "   ");
+        }
+        g_string_append(s, " ");
+        for (int i = 0; i < 16 && off + i < app->project.rom_size; i++) {
+            unsigned char c = app->project.rom[off + i];
+            g_string_append_c(s, (c >= 0x20 && c < 0x7F) ? (char)c : '.');
+        }
+        g_string_append_c(s, '\n');
+    }
+    gtk_text_buffer_set_text(buf, s->str, -1);
+    g_string_free(s, TRUE);
+}
+
+static void app_sync_hex_to_addr(App *app, int addr) {
+    if (!app || !app->hex_view || !app->project.rom || app->project.rom_size <= 0) return;
+    int off = addr - app->project.load_addr;
+    if (off < 0) off = 0;
+    if (off >= app->project.rom_size) off = app->project.rom_size - 1;
+    int line = off / 16;
+
+    GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(app->hex_view));
+    GtkTextIter it;
+    gtk_text_buffer_get_iter_at_line(buf, &it, line);
+    gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(app->hex_view), &it, 0.2, TRUE, 0.0, 0.1);
+}
+
+static UISearchMode app_get_search_mode(App *app) {
+    if (!app) return UI_SEARCH_ADDR;
+    if (app->search_mode_mnem &&
+        gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(app->search_mode_mnem)))
+        return UI_SEARCH_MNEM;
+    if (app->search_mode_comment &&
+        gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(app->search_mode_comment)))
+        return UI_SEARCH_COMMENT;
+    return UI_SEARCH_ADDR;
+}
+
+static void on_dock_search_activate(GtkEntry *entry, gpointer user_data) {
+    App *app = user_data;
+    if (!app || !app->listing_outer) return;
+    const char *text = gtk_editable_get_text(GTK_EDITABLE(entry));
+    if (!text || !text[0]) return;
+    ui_listing_search_next(app->listing_outer, text, app_get_search_mode(app));
+}
+
+static void on_dock_search_next(GtkButton *button, gpointer user_data) {
+    (void)button;
+    App *app = user_data;
+    if (!app || !app->search_entry || !app->listing_outer) return;
+    const char *text = gtk_editable_get_text(GTK_EDITABLE(app->search_entry));
+    if (!text || !text[0]) return;
+    ui_listing_search_next(app->listing_outer, text, app_get_search_mode(app));
+}
+
+static void controller_listing_visible_changed(gpointer user_data, int addr) {
+    App *app = user_data;
+    app_sync_hex_to_addr(app, addr);
+}
+
+static void controller_focus_search(gpointer user_data) {
+    App *app = user_data;
+    if (!app || !app->search_entry) return;
+    gtk_widget_grab_focus(app->search_entry);
+}
+
+static GtkWidget *build_bottom_dock(App *app) {
+    GtkWidget *dock_split = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+    int main_pos = app && app->paned ? gtk_paned_get_position(GTK_PANED(app->paned)) : 630;
+    if (main_pos <= 0) main_pos = 630;
+    gtk_paned_set_position(GTK_PANED(dock_split), main_pos);
+    gtk_paned_set_resize_start_child(GTK_PANED(dock_split), TRUE);
+    gtk_paned_set_resize_end_child(GTK_PANED(dock_split), FALSE);
+    gtk_paned_set_shrink_start_child(GTK_PANED(dock_split), TRUE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(dock_split), FALSE);
+
+    GtkWidget *hex_scrolled = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(hex_scrolled),
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(hex_scrolled, TRUE);
+
+    GtkWidget *hex_view = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(hex_view), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(hex_view), FALSE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(hex_view), GTK_WRAP_NONE);
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(hex_view), TRUE);
+    gtk_widget_add_css_class(hex_view, "monospace");
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(hex_scrolled), hex_view);
+    app->hex_view = hex_view;
+
+    GtkWidget *search_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_widget_set_margin_start(search_box, 8);
+    gtk_widget_set_margin_end(search_box, 8);
+    gtk_widget_set_margin_top(search_box, 6);
+    gtk_widget_set_margin_bottom(search_box, 6);
+    gtk_widget_set_size_request(search_box, 260, -1);
+
+    GtkWidget *search_title = gtk_label_new("SEARCH (Ctrl+S)");
+    gtk_label_set_xalign(GTK_LABEL(search_title), 0.0f);
+    gtk_box_append(GTK_BOX(search_box), search_title);
+
+    GtkWidget *mode_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    GtkWidget *mode_addr = gtk_toggle_button_new_with_label("Addr");
+    GtkWidget *mode_mnem = gtk_toggle_button_new_with_label("Mnem");
+    GtkWidget *mode_comment = gtk_toggle_button_new_with_label("Comment");
+    gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(mode_mnem), GTK_TOGGLE_BUTTON(mode_addr));
+    gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(mode_comment), GTK_TOGGLE_BUTTON(mode_addr));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mode_addr), TRUE);
+    gtk_box_append(GTK_BOX(mode_row), mode_addr);
+    gtk_box_append(GTK_BOX(mode_row), mode_mnem);
+    gtk_box_append(GTK_BOX(mode_row), mode_comment);
+    gtk_box_append(GTK_BOX(search_box), mode_row);
+
+    GtkWidget *entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "Search value");
+    gtk_box_append(GTK_BOX(search_box), entry);
+
+    GtkWidget *find_next = gtk_button_new_with_label("Find Next");
+    gtk_box_append(GTK_BOX(search_box), find_next);
+    gtk_box_append(GTK_BOX(search_box), gtk_label_new(""));
+    gtk_widget_set_vexpand(gtk_widget_get_last_child(search_box), TRUE);
+
+    app->search_entry = entry;
+    app->search_mode_addr = mode_addr;
+    app->search_mode_mnem = mode_mnem;
+    app->search_mode_comment = mode_comment;
+
+    g_signal_connect(entry, "activate", G_CALLBACK(on_dock_search_activate), app);
+    g_signal_connect(find_next, "clicked", G_CALLBACK(on_dock_search_next), app);
+
+    gtk_paned_set_start_child(GTK_PANED(dock_split), hex_scrolled);
+    gtk_paned_set_end_child(GTK_PANED(dock_split), search_box);
+    app->dock_paned = dock_split;
+    return dock_split;
+}
+
+static void on_main_paned_position_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+    (void)obj;
+    (void)pspec;
+    App *app = user_data;
+    if (!app || !app->paned || !app->dock_paned) return;
+    int pos = gtk_paned_get_position(GTK_PANED(app->paned));
+    if (pos > 0)
+        gtk_paned_set_position(GTK_PANED(app->dock_paned), pos);
+}
+
 static void controller_render(App *app) {
     int paned_pos = controller_pick_paned_position(
         app, gtk_paned_get_position(GTK_PANED(app->paned)));
@@ -125,6 +306,8 @@ static void controller_render(App *app) {
     GtkWidget *panels  = ui_panels_new(&app->project, app->window,
                                        app->project_path, listing);
     ui_listing_set_panels(listing, panels);
+    ui_listing_set_visible_addr_cb(listing, controller_listing_visible_changed, app);
+    ui_listing_set_search_focus_cb(listing, controller_focus_search, app);
     ui_panels_set_reload_cb(panels, controller_reload_and_render, app);
     ui_panels_set_jump_cb(panels, controller_request_jump, app);
     ui_panels_set_segment_command_cb(panels, controller_segment_command, app);
@@ -140,6 +323,12 @@ static void controller_render(App *app) {
     gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
     gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), FALSE);
     gtk_paned_set_position(GTK_PANED(app->paned), paned_pos);
+    if (app->dock_paned)
+        gtk_paned_set_position(GTK_PANED(app->dock_paned), paned_pos);
+
+    app_render_hex_dump(app);
+    if (app->project.nlines > 0)
+        app_sync_hex_to_addr(app, app->project.lines[0].addr);
 
     PanedPosApply *pp = g_new0(PanedPosApply, 1);
     pp->paned = app->paned;
@@ -199,6 +388,7 @@ static void controller_request_jump(gpointer user_data, int addr) {
     App *app = user_data;
     app->pending_listing_addr = addr;
     app->pending_listing_retries = 120;
+    app_sync_hex_to_addr(app, addr);
     GUI_LOG(app, "jump request 0x%04X", addr & 0xFFFF);
 }
 
@@ -590,7 +780,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
 
     app->window = gtk_application_window_new(gtk_app);
     gtk_window_set_title(GTK_WINDOW(app->window), "z80bench");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 1024, 600);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 1180, 760);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_window_set_child(GTK_WINDOW(app->window), main_box);
@@ -615,13 +805,9 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     g_signal_connect(btn_save, "clicked", G_CALLBACK(on_save_clicked), app);
     gtk_box_append(GTK_BOX(toolbar), btn_save);
 
-    gtk_box_append(GTK_BOX(toolbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
-
-    GtkWidget *search = gtk_search_entry_new();
-    gtk_widget_set_hexpand(search, TRUE);
-    gtk_box_append(GTK_BOX(toolbar), search);
-
-    gtk_box_append(GTK_BOX(toolbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+    GtkWidget *toolbar_spacer = gtk_label_new("");
+    gtk_widget_set_hexpand(toolbar_spacer, TRUE);
+    gtk_box_append(GTK_BOX(toolbar), toolbar_spacer);
 
     GtkWidget *btn_lst = gtk_button_new_with_label("Export .LST");
     g_signal_connect(btn_lst, "clicked", G_CALLBACK(on_export_lst_clicked), app);
@@ -631,7 +817,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     g_signal_connect(btn_asm, "clicked", G_CALLBACK(on_export_asm_clicked), app);
     gtk_box_append(GTK_BOX(toolbar), btn_asm);
 
-    /* Content area */
+    /* Main content area (listing + side panels) */
     app->paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     app->pending_listing_addr = -1;
     app->pending_listing_retries = 0;
@@ -640,12 +826,29 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
     gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), FALSE);
+    gtk_paned_set_position(GTK_PANED(app->paned), 700);
     gtk_widget_set_vexpand(app->paned, TRUE);
-    gtk_box_append(GTK_BOX(main_box), app->paned);
+    g_signal_connect(app->paned, "notify::position",
+                     G_CALLBACK(on_main_paned_position_changed), app);
 
     gtk_paned_set_start_child(GTK_PANED(app->paned),
         gtk_label_new("Open a .bin ROM file to begin."));
     gtk_paned_set_end_child(GTK_PANED(app->paned), gtk_label_new(""));
+
+    /* Vertical split: main content over bottom dock (hex + search) */
+    app->main_vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
+    gtk_paned_set_position(GTK_PANED(app->main_vpaned), 500);
+    gtk_paned_set_resize_start_child(GTK_PANED(app->main_vpaned), TRUE);
+    gtk_paned_set_shrink_start_child(GTK_PANED(app->main_vpaned), TRUE);
+    gtk_paned_set_resize_end_child(GTK_PANED(app->main_vpaned), FALSE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(app->main_vpaned), FALSE);
+    gtk_widget_set_vexpand(app->main_vpaned, TRUE);
+
+    gtk_paned_set_start_child(GTK_PANED(app->main_vpaned), app->paned);
+    gtk_paned_set_end_child(GTK_PANED(app->main_vpaned), build_bottom_dock(app));
+    gtk_box_append(GTK_BOX(main_box), app->main_vpaned);
+
+    app_render_hex_dump(app);
 
     gtk_window_present(GTK_WINDOW(app->window));
 }

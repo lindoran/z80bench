@@ -1,0 +1,27 @@
+# z80bench annotation file
+
+[meta]
+name = monz80_z88dk
+load_addr = 0x0000
+
+[region]
+offset = 139
+end = 140
+type = DATA_BYTE
+
+[label]
+offset = 0
+name = RESET_00
+
+[label]
+offset = 8
+name = RESET_08
+
+[comment]
+offset = 0
+text = RESET LEVEL 0
+
+[comment]
+offset = 8
+text = RESET LEVEL 8
+

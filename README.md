@@ -35,6 +35,7 @@ tracks labels/comments/segments/symbols, and exports z88dk-compatible source.
 - [`docs/DESIGN.md`](docs/DESIGN.md) - project model and file formats
 - [`docs/DISASM.md`](docs/DISASM.md) - disassembler interface
 - [`docs/UI.md`](docs/UI.md) - UI layout and widget plan
+- [`docs/SEGMENTS_RULES.md`](docs/SEGMENTS_RULES.md) - rules baseline for parent/subrange behavior
 
 ## Build
 

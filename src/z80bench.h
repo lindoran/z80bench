@@ -34,6 +34,15 @@ typedef struct {
 
 typedef void (*UISegmentSaveFn)(gpointer data, const UISegmentSaveRequest *req);
 
+typedef enum {
+    UI_SEARCH_ADDR = 0,
+    UI_SEARCH_MNEM = 1,
+    UI_SEARCH_COMMENT = 2
+} UISearchMode;
+
+typedef void (*UIListingVisibleAddrFn)(gpointer data, int addr);
+typedef void (*UIListingFocusSearchFn)(gpointer data);
+
 /* --------------------------------------------------------------------------
  * Module: UI Listing (ui_listing.c)
  * -------------------------------------------------------------------------- */
@@ -41,6 +50,13 @@ GtkWidget *ui_listing_new(Project *p, GtkWidget *panels);
 void       ui_listing_refresh_line(GtkWidget *listing_outer, int line_index);
 void       ui_listing_set_panels(GtkWidget *listing_outer, GtkWidget *panels);
 gboolean   ui_listing_select_address(GtkWidget *listing_outer, int addr);
+gboolean   ui_listing_search_next(GtkWidget *listing_outer, const char *text, UISearchMode mode);
+void       ui_listing_set_visible_addr_cb(GtkWidget *listing_outer,
+                                          UIListingVisibleAddrFn cb,
+                                          gpointer data);
+void       ui_listing_set_search_focus_cb(GtkWidget *listing_outer,
+                                          UIListingFocusSearchFn cb,
+                                          gpointer data);
 
 /* --------------------------------------------------------------------------
  * Module: UI Panels (ui_panels.c)

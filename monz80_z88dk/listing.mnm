@@ -1,0 +1,2932 @@
+# z80bench mnemonics
+# format: offset	byte_count	mnemonic	operands
+
+0	3	jp	00074h
+3	1	rst	38h
+4	1	rst	38h
+5	1	rst	38h
+6	1	rst	38h
+7	1	rst	38h
+8	3	jp	07868h
+11	1	rst	38h
+12	1	rst	38h
+13	1	rst	38h
+14	1	rst	38h
+15	1	rst	38h
+16	3	jp	07870h
+19	1	rst	38h
+20	1	rst	38h
+21	1	rst	38h
+22	1	rst	38h
+23	1	rst	38h
+24	3	jp	07878h
+27	1	rst	38h
+28	1	rst	38h
+29	1	rst	38h
+30	1	rst	38h
+31	1	rst	38h
+32	3	jp	07880h
+35	1	rst	38h
+36	1	rst	38h
+37	1	rst	38h
+38	1	rst	38h
+39	1	rst	38h
+40	3	jp	07888h
+43	1	rst	38h
+44	1	rst	38h
+45	1	rst	38h
+46	1	rst	38h
+47	1	rst	38h
+48	3	jp	07890h
+51	1	rst	38h
+52	1	rst	38h
+53	1	rst	38h
+54	1	rst	38h
+55	1	rst	38h
+56	3	ld	(07806h),hl
+59	1	pop	hl
+60	1	dec	hl
+61	3	ld	(0780ch),hl
+64	1	push	af
+65	1	pop	hl
+66	3	ld	(07800h),hl
+69	3	ld	hl,00000h
+72	1	add	hl,sp
+73	3	ld	(0780eh),hl
+76	1	ex	de,hl
+77	3	ld	(07804h),hl
+80	1	ld	h,b
+81	1	ld	l,c
+82	3	ld	(07802h),hl
+85	4	ld	(07808h),ix
+89	4	ld	(0780ah),iy
+93	3	ld	hl,07811h
+96	2	ld	b,008h
+98	1	ld	e,(hl)
+99	1	inc	hl
+100	1	ld	d,(hl)
+101	1	inc	hl
+102	1	ld	a,d
+103	1	or	l
+104	2	jr	z,$+4
+106	1	ld	a,(hl)
+107	1	ld	(de),a
+108	1	inc	hl
+109	2	djnz	$-11
+111	3	call	0028fh
+114	2	jr	$+117
+116	3	ld	sp,0785fh
+119	3	call	00f96h
+122	3	ld	hl,07800h
+125	3	ld	de,07829h
+128	2	ld	(hl),000h
+130	3	call	00255h
+133	1	inc	hl
+134	2	jr	c,$-6
+136	3	call	0050bh
+139	2	DEFB	$0A,$0D
+141	1	ld	c,l
+142	1	ld	c,a
+143	1	ld	c,(hl)
+144	1	ld	e,d
+145	2	jr	c,$+50
+147	2	jr	nz,$+88
+149	1	ld	h,l
+150	1	ld	(hl),d
+151	1	ld	(hl),e
+152	1	ld	l,c
+153	1	ld	l,a
+154	1	ld	l,(hl)
+155	2	jr	nz,$+51
+157	2	ld	l,030h
+159	1	ld	a,(bc)
+160	1	dec	c
+161	1	ld	a,(bc)
+162	1	ccf	
+163	1	ld	b,e
+164	1	ld	c,a
+165	1	ld	d,b
+166	1	ld	e,c
+167	2	ld	l,054h
+169	1	ld	e,b
+170	1	ld	d,h
+171	2	jr	nz,$+51
+173	1	add	hl,sp
+174	1	add	hl,sp
+175	2	ld	(hl),02dh
+177	3	ld	(03030h),a
+180	1	scf	
+181	2	jr	nz,$+70
+183	1	ld	h,c
+184	1	halt	
+185	1	ld	h,l
+186	2	jr	nz,$+70
+188	1	ld	(hl),l
+189	1	ld	l,(hl)
+190	1	ld	h,(hl)
+191	1	ld	l,c
+192	1	ld	h,l
+193	1	ld	l,h
+194	1	ld	h,h
+195	1	ld	a,(bc)
+196	1	dec	c
+197	2	jr	nz,$+47
+199	1	dec	l
+200	2	jr	nz,$+117
+202	1	ld	h,l
+203	1	ld	h,l
+204	2	jr	nz,$+69
+206	1	ld	c,a
+207	1	ld	d,b
+208	1	ld	e,c
+209	2	ld	l,054h
+211	1	ld	e,b
+212	1	ld	d,h
+213	2	jr	nz,$+47
+215	1	dec	l
+216	2	ld	l,00ah
+218	1	nop	
+219	3	ld	hl,07860h
+222	3	ld	(0780ch),hl
+225	3	ld	hl,0ffffh
+228	3	ld	(0780eh),hl
+231	3	ld	sp,0785fh
+234	2	ld	a,060h
+236	3	ld	(07810h),a
+239	3	call	0050bh
+242	1	ld	a,(bc)
+243	1	dec	c
+244	2	ld	a,000h
+246	2	ld	c,000h
+248	1	ld	d,c
+249	1	ld	b,c
+250	3	call	00462h
+253	1	ld	c,a
+254	3	ld	hl,00146h
+257	1	ld	a,c
+258	1	cp	(hl)
+259	1	inc	hl
+260	2	jr	nz,$+19
+262	1	ld	a,b
+263	1	cp	(hl)
+264	2	jr	nz,$+15
+266	1	inc	hl
+267	3	call	00506h
+270	1	ld	a,(hl)
+271	1	inc	hl
+272	1	ld	h,(hl)
+273	1	ld	l,a
+274	3	ld	bc,0012fh
+277	1	push	bc
+278	1	jp	(hl)
+279	1	ld	a,c
+280	1	cp	(hl)
+281	2	jr	nz,$+3
+283	1	inc	d
+284	1	inc	hl
+285	1	inc	hl
+286	1	inc	hl
+287	1	ld	a,(hl)
+288	1	and	a
+289	2	jr	nz,$-32
+291	1	or	b
+292	2	jr	nz,$+5
+294	1	or	d
+295	2	jr	nz,$-46
+297	3	call	0050bh
+300	2	jr	nz,$+65
+302	1	nop	
+303	3	ld	a,(07810h)
+306	2	and	010h
+308	2	jr	z,$-77
+310	3	ld	bc,00000h
+313	3	call	00fa5h
+316	1	and	a
+317	2	jr	nz,$-7
+319	1	dec	bc
+320	1	ld	a,b
+321	1	or	c
+322	2	jr	nz,$-9
+324	2	jr	$-93
+326	1	ld	c,l
+327	1	ld	b,h
+328	2	ld	e,002h
+330	1	ld	c,c
+331	1	ld	b,h
+332	1	dec	c
+333	1	ld	(bc),a
+334	1	ld	d,d
+335	1	ld	b,h
+336	1	adc	a,a
+337	1	ld	(bc),a
+338	1	ld	b,d
+339	1	ld	b,h
+340	1	ld	h,(hl)
+341	1	inc	bc
+342	1	ld	d,d
+343	1	ld	b,d
+344	1	sbc	a,d
+345	1	inc	bc
+346	1	ld	b,l
+347	1	nop	
+348	1	ld	a,(bc)
+349	1	inc	bc
+350	1	ld	b,(hl)
+351	1	nop	
+352	1	ld	d,h
+353	1	inc	bc
+354	1	ld	c,c
+355	1	nop	
+356	1	ld	l,c
+357	1	ld	(bc),a
+358	1	ld	c,a
+359	1	nop	
+360	1	ld	(hl),l
+361	1	ld	(bc),a
+362	1	ld	b,a
+363	1	nop	
+364	1	push	bc
+365	3	ld	bc,00054h
+368	1	add	a,d
+369	1	ld	(bc),a
+370	1	ld	c,h
+371	1	nop	
+372	1	cp	d
+373	1	inc	bc
+374	1	ld	b,(hl)
+375	1	ld	b,c
+376	3	call	04302h
+379	1	ld	b,d
+380	3	jp	nc,04502h
+383	1	ld	b,h
+384	1	rst	10h
+385	1	ld	(bc),a
+386	1	ld	c,h
+387	1	ld	c,b
+388	3	call	c,05802h
+391	1	ld	c,c
+392	1	pop	hl
+393	1	ld	(bc),a
+394	1	ld	e,c
+395	1	ld	c,c
+396	2	and	002h
+398	1	ld	b,e
+399	1	ld	d,b
+400	1	ex	de,hl
+401	1	ld	(bc),a
+402	1	ld	d,b
+403	1	ld	d,e
+404	1	ret	p
+405	1	ld	(bc),a
+406	1	ccf	
+407	1	nop	
+408	1	sbc	a,e
+409	3	ld	bc,02100h
+412	1	rrca	
+413	2	ld	c,0cdh
+415	1	ret	nc
+416	1	inc	b
+417	2	ld	b,019h
+419	1	ld	a,(hl)
+420	1	inc	hl
+421	1	and	a
+422	2	jr	z,$+27
+424	2	cp	07ch
+426	2	jr	z,$+8
+428	3	call	00fadh
+431	1	dec	b
+432	2	jr	$-13
+434	3	call	00506h
+437	2	djnz	$-3
+439	2	ld	a,02dh
+441	3	call	00fadh
+444	3	call	00506h
+447	2	jr	$-28
+449	1	or	(hl)
+450	2	jr	nz,$-36
+452	1	ret	
+453	3	ld	hl,(0780ch)
+456	1	ld	b,h
+457	1	ld	c,l
+458	3	call	0049dh
+461	3	ld	(0780ch),hl
+464	3	call	004d0h
+467	3	call	006cdh
+470	3	ld	hl,07811h
+473	2	ld	b,008h
+475	1	ld	e,(hl)
+476	1	inc	hl
+477	1	ld	d,(hl)
+478	1	inc	hl
+479	1	ld	a,d
+480	1	or	l
+481	2	jr	z,$+7
+483	1	ld	a,(de)
+484	1	ld	(hl),a
+485	2	ld	a,0ffh
+487	1	ld	(de),a
+488	1	inc	hl
+489	2	djnz	$-14
+491	4	ld	ix,(07808h)
+495	4	ld	iy,(0780ah)
+499	3	ld	hl,(07802h)
+502	1	ld	b,h
+503	1	ld	c,l
+504	3	ld	hl,(07804h)
+507	1	ex	de,hl
+508	3	ld	hl,(07800h)
+511	1	push	hl
+512	1	pop	af
+513	3	ld	hl,(0780eh)
+516	1	ld	sp,hl
+517	3	ld	hl,(0780ch)
+520	1	push	hl
+521	3	ld	hl,(07806h)
+524	1	ret	
+525	3	call	00489h
+528	3	call	004d0h
+531	3	call	00519h
+534	3	call	00255h
+537	2	jr	c,$-9
+539	2	jr	z,$-11
+541	1	ret	
+542	3	call	00489h
+545	3	call	004d0h
+548	3	call	004aeh
+551	3	call	00506h
+554	2	ld	b,010h
+556	1	push	hl
+557	3	call	00506h
+560	1	ld	a,(hl)
+561	3	call	004b3h
+564	1	inc	hl
+565	1	ld	a,b
+566	1	dec	a
+567	2	and	003h
+569	3	call	z,00506h
+572	1	dec	b
+573	2	jr	nz,$-16
+575	1	pop	hl
+576	3	call	00506h
+579	2	ld	b,010h
+581	1	ld	a,(hl)
+582	3	call	0025bh
+585	1	inc	hl
+586	1	dec	b
+587	2	jr	nz,$-6
+589	3	call	00255h
+592	2	jr	c,$-47
+594	2	jr	z,$-49
+596	1	ret	
+597	1	ld	a,h
+598	1	cp	d
+599	1	ret	nz
+600	1	ld	a,l
+601	1	cp	e
+602	1	ret	
+603	2	cp	020h
+605	2	jr	c,$+7
+607	2	cp	07fh
+609	3	jp	c,00fadh
+612	2	ld	a,02eh
+614	3	jp	00fadh
+617	3	call	00434h
+620	1	ld	c,a
+621	3	call	00506h
+624	2	in	a,(c)
+626	3	jp	004b3h
+629	3	call	00434h
+632	1	ld	c,a
+633	3	call	00506h
+636	3	call	00434h
+639	2	out	(c),a
+641	1	ret	
+642	3	ld	hl,(0780ch)
+645	1	ld	c,l
+646	3	call	00519h
+649	3	call	004d0h
+652	3	call	006d5h
+655	3	ld	hl,002ach
+658	3	ld	de,07800h
+661	3	call	00506h
+664	3	call	00510h
+667	1	ld	a,(de)
+668	1	ld	c,a
+669	1	inc	de
+670	1	ld	a,(de)
+671	1	inc	de
+672	3	call	004b3h
+675	1	ld	a,c
+676	3	call	004b3h
+679	1	ld	a,(hl)
+680	1	and	a
+681	2	jr	nz,$-20
+683	1	ret	
+684	1	ld	b,c
+685	1	ld	b,(hl)
+686	1	dec	a
+687	1	nop	
+688	1	ld	b,d
+689	1	ld	b,e
+690	1	dec	a
+691	1	nop	
+692	1	ld	b,h
+693	1	ld	b,l
+694	1	dec	a
+695	1	nop	
+696	1	ld	c,b
+697	1	ld	c,h
+698	1	dec	a
+699	1	nop	
+700	1	ld	c,c
+701	1	ld	e,b
+702	1	dec	a
+703	1	nop	
+704	1	ld	c,c
+705	1	ld	e,c
+706	1	dec	a
+707	1	nop	
+708	1	ld	d,b
+709	1	ld	b,e
+710	1	dec	a
+711	1	nop	
+712	1	ld	d,e
+713	1	ld	d,b
+714	1	dec	a
+715	1	nop	
+716	1	nop	
+717	3	ld	hl,07800h
+720	2	jr	$+35
+722	3	ld	hl,07802h
+725	2	jr	$+30
+727	3	ld	hl,07804h
+730	2	jr	$+25
+732	3	ld	hl,07806h
+735	2	jr	$+20
+737	3	ld	hl,07808h
+740	2	jr	$+15
+742	3	ld	hl,0780ah
+745	2	jr	$+10
+747	3	ld	hl,0780ch
+750	2	jr	$+5
+752	3	ld	hl,0780eh
+755	1	ld	d,h
+756	1	ld	e,l
+757	1	ld	a,(hl)
+758	1	inc	hl
+759	1	ld	h,(hl)
+760	1	ld	l,a
+761	3	call	004aeh
+764	2	ld	a,02dh
+766	3	call	00fadh
+769	3	call	00480h
+772	1	ld	a,l
+773	1	ld	(de),a
+774	1	inc	de
+775	1	ld	a,h
+776	1	ld	(de),a
+777	1	ret	
+778	3	call	00480h
+781	3	call	004d0h
+784	3	call	004aeh
+787	3	call	00506h
+790	1	ld	a,(hl)
+791	3	call	004b3h
+794	2	ld	a,02dh
+796	3	call	00fadh
+799	3	call	00447h
+802	2	jr	c,$+11
+804	1	ld	(hl),a
+805	1	inc	hl
+806	1	ld	a,l
+807	2	and	007h
+809	2	jr	z,$-28
+811	2	jr	$-24
+813	2	cp	020h
+815	2	jr	nz,$+7
+817	3	call	00506h
+820	2	jr	$-15
+822	2	cp	027h
+824	2	jr	nz,$+14
+826	3	call	00fa5h
+829	1	and	a
+830	2	jr	z,$-4
+832	1	ld	(hl),a
+833	3	call	0025bh
+836	2	jr	$-31
+838	2	cp	01bh
+840	1	ret	z
+841	2	cp	00dh
+843	1	ret	z
+844	2	cp	008h
+846	3	jp	nz,00129h
+849	1	dec	hl
+850	2	jr	$-69
+852	3	call	00489h
+855	3	call	00506h
+858	3	call	00434h
+861	1	ld	c,a
+862	1	ld	(hl),c
+863	3	call	00255h
+866	1	inc	hl
+867	2	jr	c,$-5
+869	1	ret	
+870	3	ld	de,07811h
+873	2	ld	c,000h
+875	3	call	0050bh
+878	2	jr	nz,$+68
+880	1	nop	
+881	1	ld	a,c
+882	2	add	a,030h
+884	3	call	00fadh
+887	2	ld	a,03dh
+889	3	call	00fadh
+892	1	ld	a,(de)
+893	1	ld	l,a
+894	1	inc	de
+895	1	ld	a,(de)
+896	1	ld	h,a
+897	1	inc	de
+898	1	inc	de
+899	1	or	l
+900	2	jr	nz,$+12
+902	3	call	0050bh
+905	1	dec	l
+906	1	dec	l
+907	1	dec	l
+908	1	dec	l
+909	1	nop	
+910	2	jr	$+5
+912	3	call	004aeh
+915	1	inc	c
+916	1	ld	a,c
+917	2	cp	008h
+919	2	jr	c,$-44
+921	1	ret	
+922	3	call	00462h
+925	2	sub	030h
+927	2	cp	008h
+929	3	jp	nc,00129h
+932	1	ld	e,a
+933	1	add	a,a
+934	1	add	a,e
+935	2	ld	d,078h
+937	2	add	a,011h
+939	1	ld	e,a
+940	2	jr	nc,$+3
+942	1	inc	d
+943	3	call	00506h
+946	3	call	00480h
+949	1	ex	de,hl
+950	1	ld	(hl),e
+951	1	inc	hl
+952	1	ld	(hl),d
+953	1	ret	
+954	2	ld	a,030h
+956	3	ld	(07810h),a
+959	3	call	003c8h
+962	3	jp	nz,00129h
+965	2	jr	nc,$-6
+967	1	ret	
+968	3	call	00462h
+971	2	cp	03ah
+973	2	jr	z,$+57
+975	2	cp	053h
+977	2	jr	nz,$-9
+979	3	call	00462h
+982	2	cp	030h
+984	2	jr	z,$-16
+986	2	cp	039h
+988	2	jr	z,$+83
+990	2	cp	031h
+992	2	jr	nz,$+81
+994	3	call	00434h
+997	1	ld	c,a
+998	2	sub	003h
+1000	1	ld	e,a
+1001	3	call	00434h
+1004	1	ld	h,a
+1005	1	add	a,c
+1006	1	ld	c,a
+1007	3	call	00434h
+1010	1	ld	l,a
+1011	1	add	a,c
+1012	1	ld	c,a
+1013	3	call	00434h
+1016	1	ld	(hl),a
+1017	1	inc	hl
+1018	1	add	a,c
+1019	1	ld	c,a
+1020	1	dec	e
+1021	2	jr	nz,$-8
+1023	3	call	00434h
+1026	1	add	a,c
+1027	1	inc	a
+1028	1	and	a
+1029	1	ret	
+1030	3	call	00434h
+1033	1	and	a
+1034	2	jr	z,$+37
+1036	1	ld	c,a
+1037	1	ld	e,a
+1038	3	call	00434h
+1041	1	ld	h,a
+1042	1	add	a,c
+1043	1	ld	c,a
+1044	3	call	00434h
+1047	1	ld	l,a
+1048	1	add	a,c
+1049	1	ld	c,a
+1050	3	call	00434h
+1053	1	add	a,c
+1054	1	ld	c,a
+1055	3	call	00434h
+1058	1	ld	(hl),a
+1059	1	inc	hl
+1060	1	add	a,c
+1061	1	ld	c,a
+1062	1	dec	e
+1063	2	jr	nz,$-8
+1065	3	call	00434h
+1068	1	add	a,c
+1069	1	and	a
+1070	1	ret	
+1071	1	scf	
+1072	1	ret	
+1073	2	or	0ffh
+1075	1	ret	
+1076	3	call	0044dh
+1079	3	jp	c,00129h
+1082	1	rlca	
+1083	1	rlca	
+1084	1	rlca	
+1085	1	rlca	
+1086	1	ld	b,a
+1087	3	call	0044dh
+1090	3	jp	c,00129h
+1093	1	or	b
+1094	1	ret	
+1095	3	call	0044dh
+1098	2	jr	nc,$-16
+1100	1	ret	
+1101	3	call	00462h
+1104	2	cp	030h
+1106	1	ret	c
+1107	2	sub	030h
+1109	2	cp	00ah
+1111	1	ccf	
+1112	1	ret	nc
+1113	2	sub	007h
+1115	2	cp	00ah
+1117	1	ret	c
+1118	2	cp	010h
+1120	1	ccf	
+1121	1	ret	
+1122	1	push	bc
+1123	3	ld	a,(07810h)
+1126	1	ld	b,a
+1127	3	call	00fa5h
+1130	1	and	a
+1131	2	jr	z,$-4
+1133	2	bit	6,b
+1135	2	jr	z,$+5
+1137	3	call	00fadh
+1140	2	bit	5,b
+1142	2	jr	z,$+8
+1144	2	cp	061h
+1146	2	jr	c,$+4
+1148	2	and	05fh
+1150	1	pop	bc
+1151	1	ret	
+1152	3	call	00434h
+1155	1	ld	h,a
+1156	3	call	00434h
+1159	1	ld	l,a
+1160	1	ret	
+1161	3	ld	bc,00000h
+1164	3	call	0049dh
+1167	1	ex	de,hl
+1168	2	ld	a,02ch
+1170	3	call	00fadh
+1173	3	ld	bc,0ffffh
+1176	3	call	0049dh
+1179	1	ex	de,hl
+1180	1	ret	
+1181	3	call	00447h
+1184	2	jr	nc,$-29
+1186	2	cp	020h
+1188	3	jp	nz,00129h
+1191	2	ld	a,008h
+1193	3	call	00fadh
+1196	1	ld	h,b
+1197	1	ld	l,c
+1198	1	ld	a,h
+1199	3	call	004b3h
+1202	1	ld	a,l
+1203	1	push	af
+1204	2	rr	a
+1206	2	rr	a
+1208	2	rr	a
+1210	2	rr	a
+1212	3	call	004c0h
+1215	1	pop	af
+1216	1	push	af
+1217	2	and	00fh
+1219	2	cp	00ah
+1221	2	jr	c,$+4
+1223	2	add	a,007h
+1225	2	add	a,030h
+1227	3	call	00fadh
+1230	1	pop	af
+1231	1	ret	
+1232	3	call	00fa5h
+1235	2	cp	01bh
+1237	3	jp	z,000e7h
+1240	2	cp	00dh
+1242	2	jr	nz,$+12
+1244	3	ld	a,(07810h)
+1247	2	and	07fh
+1249	3	ld	(07810h),a
+1252	2	jr	$+24
+1254	2	cp	020h
+1256	2	jr	nz,$+13
+1258	3	ld	a,(07810h)
+1261	2	xor	080h
+1263	3	jp	p,004fch
+1266	3	ld	(07810h),a
+1269	3	ld	a,(07810h)
+1272	1	and	a
+1273	3	jp	m,004d0h
+1276	2	ld	a,00ah
+1278	3	call	00fadh
+1281	2	ld	a,00dh
+1283	3	jp	00fadh
+1286	2	ld	a,020h
+1288	3	jp	00fadh
+1291	1	pop	hl
+1292	3	call	00510h
+1295	1	jp	(hl)
+1296	1	ld	a,(hl)
+1297	1	inc	hl
+1298	1	and	a
+1299	1	ret	z
+1300	3	call	00fadh
+1303	2	jr	$-7
+1305	3	ld	(07829h),hl
+1308	3	call	004aeh
+1311	1	push	de
+1312	1	push	bc
+1313	3	call	0057ch
+1316	1	ex	de,hl
+1317	3	ld	hl,(07829h)
+1320	2	ld	b,005h
+1322	3	call	00506h
+1325	1	ld	a,(hl)
+1326	1	inc	hl
+1327	3	call	004b3h
+1330	1	dec	b
+1331	3	call	00255h
+1334	2	jr	nz,$-12
+1336	3	call	00506h
+1339	3	call	00506h
+1342	3	call	00506h
+1345	2	djnz	$-9
+1347	3	ld	hl,(07829h)
+1350	2	ld	b,008h
+1352	1	ld	a,(hl)
+1353	1	inc	hl
+1354	3	call	0025bh
+1357	1	dec	b
+1358	3	call	00255h
+1361	2	jr	nz,$-9
+1363	3	call	00506h
+1366	2	djnz	$-3
+1368	4	ld	ix,0782dh
+1372	3	ld	a,(ix+000h)
+1375	1	and	a
+1376	2	jr	z,$+25
+1378	2	inc	ix
+1380	2	cp	020h
+1382	2	jr	z,$+8
+1384	3	call	00fadh
+1387	1	inc	b
+1388	2	jr	$-16
+1390	3	call	00506h
+1393	1	inc	b
+1394	1	ld	a,b
+1395	2	and	007h
+1397	2	jr	nz,$-7
+1399	2	jr	$-27
+1401	1	pop	bc
+1402	1	pop	de
+1403	1	ret	
+1404	1	ld	a,(hl)
+1405	1	inc	hl
+1406	3	ld	de,00acfh
+1409	2	cp	0cbh
+1411	2	jr	z,$+27
+1413	3	ld	de,00b19h
+1416	2	cp	0ddh
+1418	2	jr	z,$+20
+1420	3	ld	de,00d01h
+1423	2	cp	0edh
+1425	2	jr	z,$+13
+1427	3	ld	de,00c0dh
+1430	2	cp	0fdh
+1432	2	jr	z,$+6
+1434	3	ld	de,00910h
+1437	1	dec	hl
+1438	1	ld	a,(hl)
+1439	1	inc	hl
+1440	3	ld	(0782bh),a
+1443	1	ld	b,a
+1444	1	ld	a,(de)
+1445	1	inc	de
+1446	1	and	b
+1447	1	ld	c,a
+1448	1	ld	a,(de)
+1449	1	inc	de
+1450	1	cp	c
+1451	2	jr	z,$+12
+1453	1	ld	a,(de)
+1454	1	inc	de
+1455	1	and	a
+1456	2	jr	nz,$-3
+1458	1	ld	a,(de)
+1459	1	inc	de
+1460	1	and	a
+1461	2	jr	nz,$-15
+1463	4	ld	ix,0782dh
+1467	1	ld	a,(de)
+1468	1	and	a
+1469	3	jp	z,006a9h
+1472	1	inc	de
+1473	3	jp	m,006a1h
+1476	2	cp	073h
+1478	2	jr	nz,$+35
+1480	3	ld	a,(0782bh)
+1483	2	and	007h
+1485	3	ld	bc,00800h
+1488	1	push	hl
+1489	1	ld	l,a
+1490	2	ld	h,000h
+1492	1	add	hl,hl
+1493	1	add	hl,hl
+1494	1	add	hl,bc
+1495	2	ld	c,004h
+1497	1	ld	a,(hl)
+1498	1	and	a
+1499	2	jr	z,$+11
+1501	1	inc	hl
+1502	3	ld	(ix+000h),a
+1505	2	inc	ix
+1507	1	dec	c
+1508	2	jr	nz,$-11
+1510	1	pop	hl
+1511	2	jr	$-44
+1513	2	cp	064h
+1515	2	jr	nz,$+10
+1517	3	ld	a,(0782bh)
+1520	1	rra	
+1521	1	rra	
+1522	1	rra	
+1523	2	jr	$-40
+1525	2	cp	070h
+1527	2	jr	nz,$+16
+1529	3	ld	bc,00820h
+1532	3	ld	a,(0782bh)
+1535	1	rra	
+1536	1	rra	
+1537	1	rra	
+1538	1	rra	
+1539	2	and	003h
+1541	2	jr	$-53
+1543	2	cp	062h
+1545	2	jr	nz,$+9
+1547	1	ld	a,(hl)
+1548	1	inc	hl
+1549	3	call	006aeh
+1552	2	jr	$-85
+1554	2	cp	077h
+1556	2	jr	nz,$+15
+1558	1	ld	b,(hl)
+1559	1	inc	hl
+1560	1	ld	a,(hl)
+1561	1	inc	hl
+1562	3	call	006aeh
+1565	1	ld	a,b
+1566	3	call	006aeh
+1569	2	jr	$-102
+1571	2	cp	078h
+1573	2	jr	nz,$+7
+1575	3	ld	bc,00830h
+1578	2	jr	$-46
+1580	2	cp	079h
+1582	2	jr	nz,$+7
+1584	3	ld	bc,00840h
+1587	2	jr	$-55
+1589	2	cp	063h
+1591	2	jr	nz,$+15
+1593	3	ld	a,(0782bh)
+1596	1	rra	
+1597	1	rra	
+1598	1	rra	
+1599	2	and	007h
+1601	3	ld	bc,00850h
+1604	2	jr	$-116
+1606	2	cp	072h
+1608	2	jr	nz,$+25
+1610	1	ld	a,(hl)
+1611	1	inc	hl
+1612	2	ld	b,000h
+1614	1	and	a
+1615	3	jp	p,00653h
+1618	1	dec	b
+1619	1	add	a,l
+1620	1	ld	c,a
+1621	1	ld	a,h
+1622	1	adc	a,b
+1623	3	call	006aeh
+1626	1	ld	a,c
+1627	3	call	006aeh
+1630	3	jp	005bbh
+1633	2	cp	07ah
+1635	2	jr	nz,$+31
+1637	1	ld	a,(hl)
+1638	3	ld	(0782ch),a
+1641	1	inc	hl
+1642	1	ld	a,(hl)
+1643	3	ld	(0782bh),a
+1646	1	ld	b,a
+1647	1	ld	a,(de)
+1648	1	and	b
+1649	1	ld	c,a
+1650	1	inc	de
+1651	1	ld	a,(de)
+1652	1	inc	de
+1653	1	cp	c
+1654	2	jr	z,$+8
+1656	1	dec	hl
+1657	2	ld	b,0cbh
+1659	3	jp	005adh
+1662	1	inc	hl
+1663	3	jp	005bbh
+1666	2	cp	076h
+1668	2	jr	nz,$+7
+1670	3	ld	a,(0782ch)
+1673	2	jr	$-124
+1675	2	cp	06eh
+1677	2	jr	nz,$+12
+1679	3	ld	a,(0782bh)
+1682	1	rra	
+1683	1	rra	
+1684	1	rra	
+1685	2	and	007h
+1687	2	add	a,030h
+1689	3	ld	(ix+000h),a
+1692	2	inc	ix
+1694	3	jp	005bbh
+1697	2	and	07fh
+1699	3	ld	bc,00870h
+1702	3	jp	005d0h
+1705	4	ld	(ix+000h),000h
+1709	1	ret	
+1710	1	push	af
+1711	2	rr	a
+1713	2	rr	a
+1715	2	rr	a
+1717	2	rr	a
+1719	3	call	006bbh
+1722	1	pop	af
+1723	1	push	af
+1724	2	and	00fh
+1726	2	cp	00ah
+1728	2	jr	c,$+4
+1730	2	add	a,007h
+1732	2	add	a,030h
+1734	3	ld	(ix+000h),a
+1737	2	inc	ix
+1739	1	pop	af
+1740	1	ret	
+1741	3	ld	hl,(0780ch)
+1744	1	push	hl
+1745	3	call	0057ch
+1748	1	pop	bc
+1749	1	ld	a,l
+1750	1	sub	c
+1751	1	ld	c,a
+1752	2	ld	b,000h
+1754	3	ld	hl,(0780ch)
+1757	3	ld	de,0782dh
+1760	2	ldir	
+1762	3	ld	(0780ch),hl
+1765	1	ex	de,hl
+1766	2	ld	(hl),0c3h
+1768	1	inc	hl
+1769	2	ld	(hl),02eh
+1771	1	inc	hl
+1772	2	ld	(hl),007h
+1774	3	ld	a,(0782dh)
+1777	1	ld	c,a
+1778	3	ld	hl,00dcfh
+1781	2	ld	b,010h
+1783	1	ld	a,(hl)
+1784	1	inc	hl
+1785	1	and	c
+1786	1	cp	(hl)
+1787	1	inc	hl
+1788	2	jr	z,$+45
+1790	1	inc	hl
+1791	1	inc	hl
+1792	2	djnz	$-9
+1794	3	ld	hl,00000h
+1797	1	add	hl,sp
+1798	3	ld	(0782bh),hl
+1801	4	ld	ix,(07808h)
+1805	4	ld	iy,(0780ah)
+1809	3	ld	hl,(07802h)
+1812	1	ld	b,h
+1813	1	ld	c,l
+1814	3	ld	hl,(07804h)
+1817	1	ex	de,hl
+1818	3	ld	hl,(07800h)
+1821	1	push	hl
+1822	1	pop	af
+1823	3	ld	hl,(0780eh)
+1826	1	ld	sp,hl
+1827	3	ld	hl,(07806h)
+1830	3	jp	0782dh
+1833	1	ld	a,(hl)
+1834	1	inc	hl
+1835	1	ld	h,(hl)
+1836	1	ld	l,a
+1837	1	jp	(hl)
+1838	3	ld	(07806h),hl
+1841	1	push	af
+1842	1	pop	hl
+1843	3	ld	(07800h),hl
+1846	3	ld	hl,00000h
+1849	1	add	hl,sp
+1850	3	ld	(0780eh),hl
+1853	1	ex	de,hl
+1854	3	ld	(07804h),hl
+1857	1	ld	h,b
+1858	1	ld	l,c
+1859	3	ld	(07802h),hl
+1862	4	ld	(07808h),ix
+1866	4	ld	(0780ah),iy
+1870	3	ld	hl,(0782bh)
+1873	1	ld	sp,hl
+1874	1	ret	
+1875	3	ld	a,(0782eh)
+1878	2	cp	0e9h
+1880	2	jr	nz,$-86
+1882	3	ld	hl,(07808h)
+1885	2	jr	$+105
+1887	3	ld	a,(0782eh)
+1890	2	cp	0e9h
+1892	2	jr	nz,$-98
+1894	3	ld	hl,(0780ah)
+1897	2	jr	$+93
+1899	1	ld	a,c
+1900	2	and	038h
+1902	1	ld	l,a
+1903	2	ld	h,000h
+1905	3	ld	(0780ch),hl
+1908	1	ret	
+1909	3	ld	hl,(07806h)
+1912	2	jr	$+78
+1914	2	ld	c,018h
+1916	2	jr	$+12
+1918	2	ld	c,010h
+1920	2	jr	$+8
+1922	2	ld	c,008h
+1924	2	jr	$+4
+1926	2	ld	c,000h
+1928	3	call	007e0h
+1931	2	jr	nz,$+62
+1933	3	ld	hl,(0782eh)
+1936	2	jr	$+54
+1938	3	ld	a,(07803h)
+1941	1	dec	a
+1942	3	ld	(07803h),a
+1945	2	jr	z,$+48
+1947	3	ld	a,(0782eh)
+1950	1	ld	c,a
+1951	2	ld	b,000h
+1953	1	and	a
+1954	3	jp	p,007a6h
+1957	1	dec	b
+1958	3	ld	hl,(0780ch)
+1961	1	add	hl,bc
+1962	2	jr	$+28
+1964	3	call	007e0h
+1967	2	jr	nz,$+26
+1969	3	ld	hl,(0782eh)
+1972	1	ex	de,hl
+1973	3	ld	hl,(0780eh)
+1976	1	dec	hl
+1977	3	ld	a,(0780dh)
+1980	1	ld	(hl),a
+1981	1	dec	hl
+1982	3	ld	a,(0780ch)
+1985	1	ld	(hl),a
+1986	3	ld	(0780eh),hl
+1989	1	ex	de,hl
+1990	3	ld	(0780ch),hl
+1993	1	ret	
+1994	3	call	007e0h
+1997	2	jr	nz,$-4
+1999	3	ld	hl,(0780eh)
+2002	1	ld	a,(hl)
+2003	3	ld	(0780ch),a
+2006	1	inc	hl
+2007	1	ld	a,(hl)
+2008	3	ld	(0780dh),a
+2011	1	inc	hl
+2012	3	ld	(0780eh),hl
+2015	1	ret	
+2016	1	ld	a,c
+2017	2	and	038h
+2019	2	or	0c2h
+2021	3	ld	(07831h),a
+2024	3	ld	hl,07835h
+2027	3	ld	(07832h),hl
+2030	3	ld	hl,0c93ch
+2033	3	ld	(07834h),hl
+2036	3	ld	hl,(07800h)
+2039	2	ld	h,000h
+2041	1	push	hl
+2042	1	pop	af
+2043	3	call	07831h
+2046	1	and	a
+2047	1	ret	
+2048	1	ld	b,d
+2049	1	nop	
+2050	1	nop	
+2051	1	nop	
+2052	1	ld	b,e
+2053	1	nop	
+2054	1	nop	
+2055	1	nop	
+2056	1	ld	b,h
+2057	1	nop	
+2058	1	nop	
+2059	1	nop	
+2060	1	ld	b,l
+2061	1	nop	
+2062	1	nop	
+2063	1	nop	
+2064	1	ld	c,b
+2065	1	nop	
+2066	1	nop	
+2067	1	nop	
+2068	1	ld	c,h
+2069	1	nop	
+2070	1	nop	
+2071	1	nop	
+2072	2	jr	z,$+74
+2074	1	ld	c,h
+2075	1	add	hl,hl
+2076	1	ld	b,c
+2077	1	nop	
+2078	1	nop	
+2079	1	nop	
+2080	1	ld	b,d
+2081	1	ld	b,e
+2082	1	nop	
+2083	1	nop	
+2084	1	ld	b,h
+2085	1	ld	b,l
+2086	1	nop	
+2087	1	nop	
+2088	1	ld	c,b
+2089	1	ld	c,h
+2090	1	nop	
+2091	1	nop	
+2092	1	ld	d,e
+2093	1	ld	d,b
+2094	1	nop	
+2095	1	nop	
+2096	1	ld	b,d
+2097	1	ld	b,e
+2098	1	nop	
+2099	1	nop	
+2100	1	ld	b,h
+2101	1	ld	b,l
+2102	1	nop	
+2103	1	nop	
+2104	1	ld	c,c
+2105	1	ld	e,b
+2106	1	nop	
+2107	1	nop	
+2108	1	ld	d,e
+2109	1	ld	d,b
+2110	1	nop	
+2111	1	nop	
+2112	1	ld	b,d
+2113	1	ld	b,e
+2114	1	nop	
+2115	1	nop	
+2116	1	ld	b,h
+2117	1	ld	b,l
+2118	1	nop	
+2119	1	nop	
+2120	1	ld	c,c
+2121	1	ld	e,c
+2122	1	nop	
+2123	1	nop	
+2124	1	ld	d,e
+2125	1	ld	d,b
+2126	1	nop	
+2127	1	nop	
+2128	1	ld	c,(hl)
+2129	1	ld	e,d
+2130	1	nop	
+2131	1	nop	
+2132	1	ld	e,d
+2133	1	nop	
+2134	1	nop	
+2135	1	nop	
+2136	1	ld	c,(hl)
+2137	1	ld	b,e
+2138	1	nop	
+2139	1	nop	
+2140	1	ld	b,e
+2141	1	nop	
+2142	1	nop	
+2143	1	nop	
+2144	1	ld	d,b
+2145	1	ld	c,a
+2146	1	nop	
+2147	1	nop	
+2148	1	ld	d,b
+2149	1	ld	b,l
+2150	1	nop	
+2151	1	nop	
+2152	1	ld	d,b
+2153	1	nop	
+2154	1	nop	
+2155	1	nop	
+2156	1	ld	c,l
+2157	1	nop	
+2158	1	nop	
+2159	1	nop	
+2160	1	ld	c,h
+2161	1	ld	b,h
+2162	2	jr	nz,$+2
+2164	1	ld	b,d
+2165	1	ld	b,e
+2166	1	nop	
+2167	1	nop	
+2168	1	ld	b,h
+2169	1	ld	b,l
+2170	1	nop	
+2171	1	nop	
+2172	1	ld	c,b
+2173	1	ld	c,h
+2174	1	nop	
+2175	1	nop	
+2176	1	ld	c,c
+2177	1	ld	e,b
+2178	1	nop	
+2179	1	nop	
+2180	1	ld	c,c
+2181	1	ld	e,c
+2182	1	nop	
+2183	1	nop	
+2184	2	jr	z,$+68
+2186	1	ld	b,e
+2187	1	add	hl,hl
+2188	2	jr	z,$+70
+2190	1	ld	b,l
+2191	1	add	hl,hl
+2192	2	jr	z,$+74
+2194	1	ld	c,h
+2195	1	add	hl,hl
+2196	2	jr	z,$+75
+2198	1	ld	e,b
+2199	1	dec	hl
+2200	2	jr	z,$+75
+2202	1	ld	e,c
+2203	1	dec	hl
+2204	1	ld	b,c
+2205	1	inc	l
+2206	1	nop	
+2207	1	nop	
+2208	1	inc	l
+2209	1	ld	b,c
+2210	1	nop	
+2211	1	nop	
+2212	1	ld	d,e
+2213	1	ld	d,b
+2214	1	nop	
+2215	1	nop	
+2216	1	ld	d,b
+2217	1	ld	d,l
+2218	1	ld	d,e
+2219	1	ld	c,b
+2220	1	ld	d,b
+2221	1	ld	c,a
+2222	1	ld	d,b
+2223	2	jr	nz,$+67
+2225	1	ld	b,(hl)
+2226	1	nop	
+2227	1	nop	
+2228	1	ld	b,l
+2229	1	ld	e,b
+2230	1	nop	
+2231	1	nop	
+2232	1	ld	c,h
+2233	1	ld	b,h
+2234	1	nop	
+2235	1	nop	
+2236	1	ld	b,e
+2237	1	ld	d,b
+2238	1	nop	
+2239	1	nop	
+2240	1	ld	b,c
+2241	1	ld	b,h
+2242	1	ld	b,h
+2243	2	jr	nz,$+67
+2245	1	ld	b,h
+2246	1	ld	b,e
+2247	2	jr	nz,$+85
+2249	1	ld	d,l
+2250	1	ld	b,d
+2251	2	jr	nz,$+85
+2253	1	ld	b,d
+2254	1	ld	b,e
+2255	2	jr	nz,$+67
+2257	1	ld	c,(hl)
+2258	1	ld	b,h
+2259	2	jr	nz,$+81
+2261	1	ld	d,d
+2262	2	jr	nz,$+2
+2264	1	ld	e,b
+2265	1	ld	c,a
+2266	1	ld	d,d
+2267	2	jr	nz,$+75
+2269	1	ld	c,(hl)
+2270	1	ld	b,e
+2271	2	jr	nz,$+70
+2273	1	ld	b,l
+2274	1	ld	b,e
+2275	2	jr	nz,$+84
+2277	1	ld	c,h
+2278	1	nop	
+2279	1	nop	
+2280	1	ld	d,d
+2281	1	ld	d,d
+2282	1	nop	
+2283	1	nop	
+2284	1	ld	c,d
+2285	1	ld	d,b
+2286	2	jr	nz,$+2
+2288	1	ld	c,d
+2289	1	ld	d,d
+2290	2	jr	nz,$+2
+2292	1	ld	b,e
+2293	1	ld	b,c
+2294	1	ld	c,h
+2295	1	ld	c,h
+2296	1	ld	d,d
+2297	1	ld	b,l
+2298	1	ld	d,h
+2299	1	nop	
+2300	1	ld	c,c
+2301	1	ld	c,(hl)
+2302	1	nop	
+2303	1	nop	
+2304	1	ld	c,a
+2305	1	ld	d,l
+2306	1	ld	d,h
+2307	1	nop	
+2308	1	ld	b,d
+2309	1	ld	c,c
+2310	1	ld	d,h
+2311	2	jr	nz,$+85
+2313	1	ld	b,l
+2314	1	ld	d,h
+2315	2	jr	nz,$+84
+2317	1	ld	b,l
+2318	1	ld	d,e
+2319	2	jr	nz,$+1
+2321	1	halt	
+2322	1	ld	c,b
+2323	1	ld	b,c
+2324	1	ld	c,h
+2325	1	ld	d,h
+2326	1	nop	
+2327	1	ret	nz
+2328	1	ld	b,b
+2329	1	add	a,b
+2330	1	ld	h,h
+2331	1	inc	l
+2332	1	ld	(hl),e
+2333	1	nop	
+2334	1	rst	0
+2335	2	ld	b,080h
+2337	1	ld	h,h
+2338	1	inc	l
+2339	1	ld	h,d
+2340	1	nop	
+2341	1	rst	38h
+2342	1	ld	a,(bc)
+2343	1	add	a,b
+2344	1	adc	a,e
+2345	1	add	a,(hl)
+2346	1	nop	
+2347	1	rst	38h
+2348	1	ld	a,(de)
+2349	1	add	a,b
+2350	1	adc	a,e
+2351	1	add	a,a
+2352	1	nop	
+2353	1	rst	38h
+2354	3	ld	a,(08b80h)
+2357	2	jr	z,$+121
+2359	1	add	hl,hl
+2360	1	nop	
+2361	1	rst	38h
+2362	1	ld	(bc),a
+2363	1	add	a,b
+2364	1	add	a,(hl)
+2365	1	adc	a,h
+2366	1	nop	
+2367	1	rst	38h
+2368	1	ld	(de),a
+2369	1	add	a,b
+2370	1	add	a,a
+2371	1	adc	a,h
+2372	1	nop	
+2373	1	rst	8
+2374	3	ld	bc,07080h
+2377	1	inc	l
+2378	1	ld	(hl),a
+2379	1	nop	
+2380	1	rst	38h
+2381	3	ld	(02880h),a
+2384	1	ld	(hl),a
+2385	1	add	hl,hl
+2386	1	adc	a,h
+2387	1	nop	
+2388	1	rst	38h
+2389	3	ld	hl,(08380h)
+2392	1	inc	l
+2393	2	jr	z,$+121
+2395	1	add	hl,hl
+2396	1	nop	
+2397	1	rst	38h
+2398	3	ld	(02880h),hl
+2401	1	ld	(hl),a
+2402	1	add	hl,hl
+2403	1	inc	l
+2404	1	add	a,e
+2405	1	nop	
+2406	1	rst	38h
+2407	1	ld	sp,hl
+2408	1	add	a,b
+2409	1	adc	a,l
+2410	1	inc	l
+2411	1	add	a,e
+2412	1	nop	
+2413	1	rst	38h
+2414	1	push	af
+2415	1	adc	a,(hl)
+2416	2	jr	nz,$-110
+2418	1	nop	
+2419	1	rst	8
+2420	1	push	bc
+2421	1	adc	a,(hl)
+2422	2	jr	nz,$+114
+2424	1	nop	
+2425	1	rst	38h
+2426	1	pop	af
+2427	1	adc	a,a
+2428	1	sub	b
+2429	1	nop	
+2430	1	rst	8
+2431	1	pop	bc
+2432	1	adc	a,a
+2433	1	ld	(hl),b
+2434	1	nop	
+2435	1	rst	38h
+2436	1	ex	de,hl
+2437	1	sub	c
+2438	2	jr	nz,$-124
+2440	1	inc	l
+2441	1	add	a,e
+2442	1	nop	
+2443	1	rst	38h
+2444	1	ex	af,af'
+2445	1	sub	c
+2446	2	jr	nz,$-110
+2448	1	inc	l
+2449	1	sub	b
+2450	1	daa	
+2451	1	nop	
+2452	1	rst	38h
+2453	1	exx	
+2454	1	sub	c
+2455	1	ld	e,b
+2456	1	nop	
+2457	1	rst	38h
+2458	1	ex	(sp),hl
+2459	1	sub	c
+2460	2	jr	nz,$+42
+2462	1	adc	a,l
+2463	1	add	hl,hl
+2464	1	inc	l
+2465	1	add	a,e
+2466	1	nop	
+2467	1	ret	m
+2468	1	add	a,b
+2469	1	sub	h
+2470	1	adc	a,e
+2471	1	ld	(hl),e
+2472	1	nop	
+2473	1	rst	38h
+2474	2	add	a,094h
+2476	1	adc	a,e
+2477	1	ld	h,d
+2478	1	nop	
+2479	1	ret	m
+2480	1	adc	a,b
+2481	1	sub	l
+2482	1	adc	a,e
+2483	1	ld	(hl),e
+2484	1	nop	
+2485	1	rst	38h
+2486	2	adc	a,095h
+2488	1	adc	a,e
+2489	1	ld	h,d
+2490	1	nop	
+2491	1	ret	m
+2492	1	sub	b
+2493	1	sub	(hl)
+2494	1	adc	a,e
+2495	1	ld	(hl),e
+2496	1	nop	
+2497	1	rst	38h
+2498	2	sub	096h
+2500	1	adc	a,e
+2501	1	ld	h,d
+2502	1	nop	
+2503	1	ret	m
+2504	1	sbc	a,b
+2505	1	sub	a
+2506	1	adc	a,e
+2507	1	ld	(hl),e
+2508	1	nop	
+2509	1	rst	38h
+2510	2	sbc	a,097h
+2512	1	adc	a,e
+2513	1	ld	h,d
+2514	1	nop	
+2515	1	ret	m
+2516	1	and	b
+2517	1	sbc	a,b
+2518	1	adc	a,e
+2519	1	ld	(hl),e
+2520	1	nop	
+2521	1	rst	38h
+2522	2	and	098h
+2524	1	adc	a,e
+2525	1	ld	h,d
+2526	1	nop	
+2527	1	ret	m
+2528	1	xor	b
+2529	1	sbc	a,d
+2530	1	adc	a,e
+2531	1	ld	(hl),e
+2532	1	nop	
+2533	1	rst	38h
+2534	2	xor	09ah
+2536	1	adc	a,e
+2537	1	ld	h,d
+2538	1	nop	
+2539	1	ret	m
+2540	1	or	b
+2541	1	sbc	a,c
+2542	1	adc	a,e
+2543	1	ld	(hl),e
+2544	1	nop	
+2545	1	rst	38h
+2546	2	or	099h
+2548	1	adc	a,e
+2549	1	ld	h,d
+2550	1	nop	
+2551	1	ret	m
+2552	1	cp	b
+2553	1	sub	e
+2554	2	jr	nz,$-115
+2556	1	ld	(hl),e
+2557	1	nop	
+2558	1	rst	38h
+2559	2	cp	093h
+2561	2	jr	nz,$-115
+2563	1	ld	h,d
+2564	1	nop	
+2565	1	rst	0
+2566	1	inc	b
+2567	1	sbc	a,e
+2568	1	ld	h,h
+2569	1	nop	
+2570	1	rst	0
+2571	1	dec	b
+2572	1	sbc	a,h
+2573	1	ld	h,h
+2574	1	nop	
+2575	1	rst	8
+2576	1	add	hl,bc
+2577	1	sub	h
+2578	1	add	a,e
+2579	1	inc	l
+2580	1	ld	(hl),b
+2581	1	nop	
+2582	1	rst	38h
+2583	1	daa	
+2584	1	ld	b,h
+2585	1	ld	b,c
+2586	1	ld	b,c
+2587	1	nop	
+2588	1	rst	38h
+2589	1	cpl	
+2590	1	sub	e
+2591	1	ld	c,h
+2592	1	nop	
+2593	1	rst	38h
+2594	1	ccf	
+2595	1	ld	b,e
+2596	1	ld	b,e
+2597	1	ld	b,(hl)
+2598	1	nop	
+2599	1	rst	38h
+2600	1	scf	
+2601	1	ld	d,e
+2602	1	ld	b,e
+2603	1	ld	b,(hl)
+2604	1	nop	
+2605	1	rst	38h
+2606	1	nop	
+2607	1	ld	c,(hl)
+2608	1	ld	c,a
+2609	1	ld	d,b
+2610	1	nop	
+2611	1	rst	38h
+2612	1	di	
+2613	1	ld	b,h
+2614	1	ld	c,c
+2615	1	nop	
+2616	1	rst	38h
+2617	1	ei	
+2618	1	ld	b,l
+2619	1	ld	c,c
+2620	1	nop	
+2621	1	rst	8
+2622	1	inc	bc
+2623	1	sbc	a,e
+2624	1	ld	(hl),b
+2625	1	nop	
+2626	1	rst	8
+2627	1	dec	bc
+2628	1	sbc	a,h
+2629	1	ld	(hl),b
+2630	1	nop	
+2631	1	rst	38h
+2632	1	rlca	
+2633	1	sbc	a,l
+2634	1	ld	b,e
+2635	1	ld	b,c
+2636	1	nop	
+2637	1	rst	38h
+2638	1	rla	
+2639	1	sbc	a,l
+2640	1	ld	b,c
+2641	1	nop	
+2642	1	rst	38h
+2643	1	rrca	
+2644	1	sbc	a,(hl)
+2645	1	ld	b,e
+2646	1	ld	b,c
+2647	1	nop	
+2648	1	rst	38h
+2649	1	rra	
+2650	1	sbc	a,(hl)
+2651	1	ld	b,c
+2652	1	nop	
+2653	1	rst	38h
+2654	3	jp	0779fh
+2657	1	nop	
+2658	1	rst	0
+2659	3	jp	nz,0639fh
+2662	1	inc	l
+2663	1	ld	(hl),a
+2664	1	nop	
+2665	1	rst	38h
+2666	2	jr	$-94
+2668	1	ld	(hl),d
+2669	1	nop	
+2670	1	rst	38h
+2671	2	jr	c,$-94
+2673	1	ld	b,e
+2674	1	inc	l
+2675	1	ld	(hl),d
+2676	1	nop	
+2677	1	rst	38h
+2678	2	jr	nc,$-94
+2680	1	ld	c,(hl)
+2681	1	ld	b,e
+2682	1	inc	l
+2683	1	ld	(hl),d
+2684	1	nop	
+2685	1	rst	38h
+2686	2	jr	z,$-94
+2688	1	ld	e,d
+2689	1	inc	l
+2690	1	ld	(hl),d
+2691	1	nop	
+2692	1	rst	38h
+2693	2	jr	nz,$-94
+2695	1	ld	c,(hl)
+2696	1	ld	e,d
+2697	1	inc	l
+2698	1	ld	(hl),d
+2699	1	nop	
+2700	1	rst	38h
+2701	1	jp	(hl)
+2702	1	sbc	a,a
+2703	1	adc	a,b
+2704	1	nop	
+2705	1	rst	38h
+2706	2	djnz	$+70
+2708	1	ld	c,d
+2709	1	ld	c,(hl)
+2710	1	ld	e,d
+2711	2	jr	nz,$+116
+2713	1	nop	
+2714	1	rst	38h
+2715	3	call	020a1h
+2718	1	ld	(hl),a
+2719	1	nop	
+2720	1	rst	0
+2721	3	call	nz,020a1h
+2724	1	ld	h,e
+2725	1	inc	l
+2726	1	ld	(hl),a
+2727	1	nop	
+2728	1	rst	38h
+2729	1	ret	
+2730	1	and	d
+2731	1	nop	
+2732	1	rst	0
+2733	1	ret	nz
+2734	1	and	d
+2735	2	jr	nz,$+101
+2737	1	nop	
+2738	1	rst	0
+2739	1	rst	0
+2740	1	ld	d,d
+2741	1	ld	d,e
+2742	1	ld	d,h
+2743	2	jr	nz,$+112
+2745	1	nop	
+2746	1	rst	38h
+2747	2	in	a,(0a3h)
+2749	2	jr	nz,$-115
+2751	2	jr	z,$+100
+2753	1	add	hl,hl
+2754	1	nop	
+2755	1	rst	38h
+2756	2	out	(0a4h),a
+2758	2	jr	nz,$+42
+2760	1	ld	h,d
+2761	1	add	hl,hl
+2762	1	adc	a,h
+2763	1	nop	
+2764	1	nop	
+2765	1	ccf	
+2766	1	nop	
+2767	1	ret	m
+2768	1	nop	
+2769	1	sbc	a,l
+2770	1	ld	b,e
+2771	2	jr	nz,$+117
+2773	1	nop	
+2774	1	ret	m
+2775	2	djnz	$-97
+2777	2	jr	nz,$+117
+2779	1	nop	
+2780	1	ret	m
+2781	1	ex	af,af'
+2782	1	sbc	a,(hl)
+2783	1	ld	b,e
+2784	2	jr	nz,$+117
+2786	1	nop	
+2787	1	ret	m
+2788	2	jr	$-96
+2790	2	jr	nz,$+117
+2792	1	nop	
+2793	1	ret	m
+2794	2	jr	nz,$+85
+2796	1	ld	c,h
+2797	1	ld	b,c
+2798	2	jr	nz,$+117
+2800	1	nop	
+2801	1	ret	m
+2802	2	jr	z,$+85
+2804	1	ld	d,d
+2805	1	ld	b,c
+2806	2	jr	nz,$+117
+2808	1	nop	
+2809	1	ret	m
+2810	2	jr	c,$+85
+2812	1	ld	d,d
+2813	1	ld	c,h
+2814	2	jr	nz,$+117
+2816	1	nop	
+2817	1	ret	nz
+2818	1	ld	b,b
+2819	1	and	l
+2820	1	ld	l,(hl)
+2821	1	inc	l
+2822	1	ld	(hl),e
+2823	1	nop	
+2824	1	ret	nz
+2825	1	ret	nz
+2826	1	and	(hl)
+2827	1	ld	l,(hl)
+2828	1	inc	l
+2829	1	ld	(hl),e
+2830	1	nop	
+2831	1	ret	nz
+2832	1	add	a,b
+2833	1	and	a
+2834	1	ld	l,(hl)
+2835	1	inc	l
+2836	1	ld	(hl),e
+2837	1	nop	
+2838	1	nop	
+2839	1	ccf	
+2840	1	nop	
+2841	1	rst	0
+2842	1	ld	b,(hl)
+2843	1	add	a,b
+2844	1	ld	h,h
+2845	1	inc	l
+2846	1	adc	a,c
+2847	1	ld	h,d
+2848	1	add	hl,hl
+2849	1	nop	
+2850	1	ret	m
+2851	1	ld	(hl),b
+2852	1	add	a,b
+2853	1	adc	a,c
+2854	1	ld	h,d
+2855	1	add	hl,hl
+2856	1	inc	l
+2857	1	ld	(hl),e
+2858	1	nop	
+2859	1	rst	38h
+2860	2	ld	(hl),080h
+2862	1	adc	a,c
+2863	1	ld	h,d
+2864	1	add	hl,hl
+2865	1	inc	l
+2866	1	ld	h,d
+2867	1	nop	
+2868	1	rst	38h
+2869	3	ld	hl,08480h
+2872	1	inc	l
+2873	1	ld	(hl),a
+2874	1	nop	
+2875	1	rst	38h
+2876	3	ld	hl,(08480h)
+2879	1	inc	l
+2880	2	jr	z,$+121
+2882	1	add	hl,hl
+2883	1	nop	
+2884	1	rst	38h
+2885	3	ld	(02880h),hl
+2888	1	ld	(hl),a
+2889	1	add	hl,hl
+2890	1	inc	l
+2891	1	add	a,h
+2892	1	nop	
+2893	1	rst	38h
+2894	1	ld	sp,hl
+2895	1	add	a,b
+2896	1	adc	a,l
+2897	1	inc	l
+2898	1	add	a,h
+2899	1	nop	
+2900	1	rst	38h
+2901	1	push	hl
+2902	1	adc	a,(hl)
+2903	2	jr	nz,$-122
+2905	1	nop	
+2906	1	rst	38h
+2907	1	pop	hl
+2908	1	adc	a,a
+2909	1	add	a,h
+2910	1	nop	
+2911	1	rst	38h
+2912	1	ex	(sp),hl
+2913	1	sub	c
+2914	2	jr	nz,$+42
+2916	1	adc	a,l
+2917	1	add	hl,hl
+2918	1	inc	l
+2919	1	add	a,h
+2920	1	nop	
+2921	1	rst	38h
+2922	1	add	a,(hl)
+2923	1	sub	h
+2924	1	adc	a,e
+2925	1	adc	a,c
+2926	1	ld	h,d
+2927	1	add	hl,hl
+2928	1	nop	
+2929	1	rst	38h
+2930	1	adc	a,(hl)
+2931	1	sub	l
+2932	1	adc	a,e
+2933	1	adc	a,c
+2934	1	ld	h,d
+2935	1	add	hl,hl
+2936	1	nop	
+2937	1	rst	38h
+2938	1	sub	(hl)
+2939	1	sub	(hl)
+2940	1	adc	a,e
+2941	1	adc	a,c
+2942	1	ld	h,d
+2943	1	add	hl,hl
+2944	1	nop	
+2945	1	rst	38h
+2946	1	sbc	a,(hl)
+2947	1	sub	a
+2948	1	adc	a,e
+2949	1	adc	a,c
+2950	1	ld	h,d
+2951	1	add	hl,hl
+2952	1	nop	
+2953	1	rst	38h
+2954	1	and	(hl)
+2955	1	sbc	a,b
+2956	1	adc	a,e
+2957	1	adc	a,c
+2958	1	ld	h,d
+2959	1	add	hl,hl
+2960	1	nop	
+2961	1	rst	38h
+2962	1	xor	(hl)
+2963	1	sbc	a,d
+2964	1	adc	a,e
+2965	1	adc	a,c
+2966	1	ld	h,d
+2967	1	add	hl,hl
+2968	1	nop	
+2969	1	rst	38h
+2970	1	or	(hl)
+2971	1	sbc	a,c
+2972	1	adc	a,e
+2973	1	adc	a,c
+2974	1	ld	h,d
+2975	1	add	hl,hl
+2976	1	nop	
+2977	1	rst	38h
+2978	1	cp	(hl)
+2979	1	sub	e
+2980	2	jr	nz,$-115
+2982	1	adc	a,c
+2983	1	ld	h,d
+2984	1	add	hl,hl
+2985	1	nop	
+2986	1	rst	38h
+2987	1	inc	(hl)
+2988	1	sbc	a,e
+2989	1	adc	a,c
+2990	1	ld	h,d
+2991	1	add	hl,hl
+2992	1	nop	
+2993	1	rst	38h
+2994	1	dec	(hl)
+2995	1	sbc	a,h
+2996	1	adc	a,c
+2997	1	ld	h,d
+2998	1	add	hl,hl
+2999	1	nop	
+3000	1	rst	8
+3001	1	add	hl,bc
+3002	1	sub	h
+3003	1	add	a,h
+3004	1	inc	l
+3005	1	ld	a,b
+3006	1	nop	
+3007	1	rst	38h
+3008	1	inc	hl
+3009	1	sbc	a,e
+3010	1	add	a,h
+3011	1	nop	
+3012	1	rst	38h
+3013	1	dec	hl
+3014	1	sbc	a,h
+3015	1	add	a,h
+3016	1	nop	
+3017	1	rst	38h
+3018	1	jp	(hl)
+3019	1	sbc	a,a
+3020	1	adc	a,c
+3021	1	nop	
+3022	1	rst	38h
+3023	2	bit	7,d
+3025	1	rst	38h
+3026	2	ld	b,09dh
+3028	1	ld	b,e
+3029	2	jr	nz,$-117
+3031	1	halt	
+3032	1	add	hl,hl
+3033	1	nop	
+3034	1	rst	38h
+3035	2	bit	7,d
+3037	1	rst	38h
+3038	2	ld	d,09eh
+3040	1	ld	b,e
+3041	2	jr	nz,$-117
+3043	1	halt	
+3044	1	add	hl,hl
+3045	1	nop	
+3046	1	rst	38h
+3047	2	bit	7,d
+3049	1	rst	0
+3050	1	ld	b,(hl)
+3051	1	and	l
+3052	1	ld	l,(hl)
+3053	1	inc	l
+3054	1	adc	a,c
+3055	1	halt	
+3056	1	add	hl,hl
+3057	1	nop	
+3058	1	rst	38h
+3059	2	bit	7,d
+3061	1	rst	0
+3062	2	add	a,0a6h
+3064	1	ld	l,(hl)
+3065	1	inc	l
+3066	1	adc	a,c
+3067	1	halt	
+3068	1	add	hl,hl
+3069	1	nop	
+3070	1	rst	38h
+3071	2	bit	7,d
+3073	1	rst	0
+3074	1	add	a,(hl)
+3075	1	and	a
+3076	1	ld	l,(hl)
+3077	1	inc	l
+3078	1	adc	a,c
+3079	1	halt	
+3080	1	add	hl,hl
+3081	1	nop	
+3082	1	nop	
+3083	1	ccf	
+3084	1	nop	
+3085	1	rst	0
+3086	1	ld	b,(hl)
+3087	1	add	a,b
+3088	1	ld	h,h
+3089	1	inc	l
+3090	1	adc	a,d
+3091	1	ld	h,d
+3092	1	add	hl,hl
+3093	1	nop	
+3094	1	ret	m
+3095	1	ld	(hl),b
+3096	1	add	a,b
+3097	1	adc	a,d
+3098	1	ld	h,d
+3099	1	add	hl,hl
+3100	1	inc	l
+3101	1	ld	(hl),e
+3102	1	nop	
+3103	1	rst	38h
+3104	2	ld	(hl),080h
+3106	1	adc	a,d
+3107	1	ld	h,d
+3108	1	add	hl,hl
+3109	1	inc	l
+3110	1	ld	h,d
+3111	1	nop	
+3112	1	rst	38h
+3113	3	ld	hl,08580h
+3116	1	inc	l
+3117	1	ld	(hl),a
+3118	1	nop	
+3119	1	rst	38h
+3120	3	ld	hl,(08580h)
+3123	1	inc	l
+3124	2	jr	z,$+121
+3126	1	add	hl,hl
+3127	1	nop	
+3128	1	rst	38h
+3129	3	ld	(02880h),hl
+3132	1	ld	(hl),a
+3133	1	add	hl,hl
+3134	1	inc	l
+3135	1	add	a,l
+3136	1	nop	
+3137	1	rst	38h
+3138	1	ld	sp,hl
+3139	1	add	a,b
+3140	1	adc	a,l
+3141	1	inc	l
+3142	1	add	a,l
+3143	1	nop	
+3144	1	rst	38h
+3145	1	push	hl
+3146	1	adc	a,(hl)
+3147	2	jr	nz,$-121
+3149	1	nop	
+3150	1	rst	38h
+3151	1	pop	hl
+3152	1	adc	a,a
+3153	1	add	a,l
+3154	1	nop	
+3155	1	rst	38h
+3156	1	ex	(sp),hl
+3157	1	sub	c
+3158	2	jr	nz,$+42
+3160	1	adc	a,l
+3161	1	add	hl,hl
+3162	1	inc	l
+3163	1	add	a,l
+3164	1	nop	
+3165	1	rst	38h
+3166	1	add	a,(hl)
+3167	1	sub	h
+3168	1	adc	a,e
+3169	1	adc	a,d
+3170	1	ld	h,d
+3171	1	add	hl,hl
+3172	1	nop	
+3173	1	rst	38h
+3174	1	adc	a,(hl)
+3175	1	sub	l
+3176	1	adc	a,e
+3177	1	adc	a,d
+3178	1	ld	h,d
+3179	1	add	hl,hl
+3180	1	nop	
+3181	1	rst	38h
+3182	1	sub	(hl)
+3183	1	sub	(hl)
+3184	1	adc	a,e
+3185	1	adc	a,d
+3186	1	ld	h,d
+3187	1	add	hl,hl
+3188	1	nop	
+3189	1	rst	38h
+3190	1	sbc	a,(hl)
+3191	1	sub	a
+3192	1	adc	a,e
+3193	1	adc	a,d
+3194	1	ld	h,d
+3195	1	add	hl,hl
+3196	1	nop	
+3197	1	rst	38h
+3198	1	and	(hl)
+3199	1	sbc	a,b
+3200	1	adc	a,e
+3201	1	adc	a,d
+3202	1	ld	h,d
+3203	1	add	hl,hl
+3204	1	nop	
+3205	1	rst	38h
+3206	1	xor	(hl)
+3207	1	sbc	a,d
+3208	1	adc	a,e
+3209	1	adc	a,d
+3210	1	ld	h,d
+3211	1	add	hl,hl
+3212	1	nop	
+3213	1	rst	38h
+3214	1	or	(hl)
+3215	1	sbc	a,c
+3216	1	adc	a,e
+3217	1	adc	a,d
+3218	1	ld	h,d
+3219	1	add	hl,hl
+3220	1	nop	
+3221	1	rst	38h
+3222	1	cp	(hl)
+3223	1	sub	e
+3224	2	jr	nz,$-115
+3226	1	adc	a,d
+3227	1	ld	h,d
+3228	1	add	hl,hl
+3229	1	nop	
+3230	1	rst	38h
+3231	1	inc	(hl)
+3232	1	sbc	a,e
+3233	1	adc	a,d
+3234	1	ld	h,d
+3235	1	add	hl,hl
+3236	1	nop	
+3237	1	rst	38h
+3238	1	dec	(hl)
+3239	1	sbc	a,h
+3240	1	adc	a,d
+3241	1	ld	h,d
+3242	1	add	hl,hl
+3243	1	nop	
+3244	1	rst	8
+3245	1	add	hl,bc
+3246	1	sub	h
+3247	1	add	a,l
+3248	1	inc	l
+3249	1	ld	a,c
+3250	1	nop	
+3251	1	rst	38h
+3252	1	inc	hl
+3253	1	sbc	a,e
+3254	1	add	a,l
+3255	1	nop	
+3256	1	rst	38h
+3257	1	dec	hl
+3258	1	sbc	a,h
+3259	1	add	a,l
+3260	1	nop	
+3261	1	rst	38h
+3262	1	jp	(hl)
+3263	1	sbc	a,a
+3264	1	adc	a,d
+3265	1	nop	
+3266	1	rst	38h
+3267	2	bit	7,d
+3269	1	rst	38h
+3270	2	ld	b,09dh
+3272	1	ld	b,e
+3273	2	jr	nz,$-116
+3275	1	halt	
+3276	1	add	hl,hl
+3277	1	nop	
+3278	1	rst	38h
+3279	2	bit	7,d
+3281	1	rst	38h
+3282	2	ld	d,09eh
+3284	1	ld	b,e
+3285	2	jr	nz,$-116
+3287	1	halt	
+3288	1	add	hl,hl
+3289	1	nop	
+3290	1	rst	38h
+3291	2	bit	7,d
+3293	1	rst	0
+3294	1	ld	b,(hl)
+3295	1	and	l
+3296	1	ld	l,(hl)
+3297	1	inc	l
+3298	1	adc	a,d
+3299	1	halt	
+3300	1	add	hl,hl
+3301	1	nop	
+3302	1	rst	38h
+3303	2	bit	7,d
+3305	1	rst	0
+3306	2	add	a,0a6h
+3308	1	ld	l,(hl)
+3309	1	inc	l
+3310	1	adc	a,d
+3311	1	halt	
+3312	1	add	hl,hl
+3313	1	nop	
+3314	1	rst	38h
+3315	2	bit	7,d
+3317	1	rst	0
+3318	1	add	a,(hl)
+3319	1	and	a
+3320	1	ld	l,(hl)
+3321	1	inc	l
+3322	1	adc	a,d
+3323	1	halt	
+3324	1	add	hl,hl
+3325	1	nop	
+3326	1	nop	
+3327	1	ccf	
+3328	1	nop	
+3329	1	rst	38h
+3330	1	ld	d,a
+3331	1	add	a,b
+3332	1	adc	a,e
+3333	1	ld	c,c
+3334	1	nop	
+3335	1	rst	38h
+3336	1	ld	e,a
+3337	1	add	a,b
+3338	1	adc	a,e
+3339	1	ld	d,d
+3340	1	nop	
+3341	1	rst	38h
+3342	1	ld	b,a
+3343	1	add	a,b
+3344	1	ld	c,c
+3345	1	adc	a,h
+3346	1	nop	
+3347	1	rst	38h
+3348	1	ld	c,a
+3349	1	add	a,b
+3350	1	ld	d,d
+3351	1	adc	a,h
+3352	1	nop	
+3353	1	rst	8
+3354	1	ld	c,e
+3355	1	add	a,b
+3356	1	ld	(hl),b
+3357	2	jr	z,$+121
+3359	1	add	hl,hl
+3360	1	nop	
+3361	1	rst	38h
+3362	1	and	b
+3363	1	sub	d
+3364	1	ld	c,c
+3365	1	nop	
+3366	1	rst	38h
+3367	1	or	b
+3368	1	sub	d
+3369	1	ld	c,c
+3370	1	ld	d,d
+3371	1	nop	
+3372	1	rst	38h
+3373	1	xor	b
+3374	1	sub	d
+3375	1	ld	b,h
+3376	1	nop	
+3377	1	rst	38h
+3378	1	cp	b
+3379	1	sub	d
+3380	1	ld	b,h
+3381	1	ld	d,d
+3382	1	nop	
+3383	1	rst	38h
+3384	1	and	c
+3385	1	sub	e
+3386	1	ld	c,c
+3387	1	nop	
+3388	1	rst	38h
+3389	1	or	c
+3390	1	sub	e
+3391	1	ld	c,c
+3392	1	ld	d,d
+3393	1	nop	
+3394	1	rst	38h
+3395	1	xor	c
+3396	1	sub	e
+3397	1	ld	b,h
+3398	1	nop	
+3399	1	rst	38h
+3400	1	cp	c
+3401	1	sub	e
+3402	1	ld	b,h
+3403	1	ld	d,d
+3404	1	nop	
+3405	1	rst	38h
+3406	1	ld	b,h
+3407	1	ld	c,(hl)
+3408	1	ld	b,l
+3409	1	ld	b,a
+3410	1	nop	
+3411	1	rst	38h
+3412	1	ld	b,(hl)
+3413	1	ld	c,c
+3414	1	ld	c,l
+3415	2	jr	nz,$+50
+3417	1	nop	
+3418	1	rst	38h
+3419	1	ld	d,(hl)
+3420	1	ld	c,c
+3421	1	ld	c,l
+3422	2	jr	nz,$+51
+3424	1	nop	
+3425	1	rst	38h
+3426	1	ld	e,(hl)
+3427	1	ld	c,c
+3428	1	ld	c,l
+3429	2	jr	nz,$+52
+3431	1	nop	
+3432	1	rst	8
+3433	1	ld	c,d
+3434	1	sub	l
+3435	1	add	a,e
+3436	1	inc	l
+3437	1	ld	(hl),b
+3438	1	nop	
+3439	1	rst	8
+3440	1	ld	b,d
+3441	1	sub	a
+3442	1	add	a,e
+3443	1	inc	l
+3444	1	ld	(hl),b
+3445	1	nop	
+3446	1	rst	38h
+3447	1	ld	l,a
+3448	1	sbc	a,l
+3449	1	ld	b,h
+3450	1	nop	
+3451	1	rst	38h
+3452	1	ld	h,a
+3453	1	sbc	a,(hl)
+3454	1	ld	b,h
+3455	1	nop	
+3456	1	rst	38h
+3457	1	ld	c,l
+3458	1	and	d
+3459	1	ld	c,c
+3460	1	nop	
+3461	1	rst	38h
+3462	1	ld	b,l
+3463	1	and	d
+3464	1	ld	c,(hl)
+3465	1	nop	
+3466	1	rst	0
+3467	1	ld	b,b
+3468	1	and	e
+3469	2	jr	nz,$+102
+3471	1	inc	l
+3472	2	jr	z,$+69
+3474	1	add	hl,hl
+3475	1	nop	
+3476	1	rst	38h
+3477	1	and	d
+3478	1	and	e
+3479	1	ld	c,c
+3480	1	nop	
+3481	1	rst	38h
+3482	1	or	d
+3483	1	and	e
+3484	1	ld	c,c
+3485	1	ld	d,d
+3486	1	nop	
+3487	1	rst	38h
+3488	1	xor	d
+3489	1	and	e
+3490	1	ld	b,h
+3491	1	nop	
+3492	1	rst	38h
+3493	1	cp	d
+3494	1	and	e
+3495	1	ld	b,h
+3496	1	ld	d,d
+3497	1	nop	
+3498	1	rst	0
+3499	1	ld	b,c
+3500	1	and	h
+3501	2	jr	nz,$+42
+3503	1	ld	b,e
+3504	1	add	hl,hl
+3505	1	inc	l
+3506	1	ld	h,h
+3507	1	nop	
+3508	1	rst	38h
+3509	1	and	e
+3510	1	and	h
+3511	1	ld	c,c
+3512	1	nop	
+3513	1	rst	38h
+3514	1	or	e
+3515	1	ld	c,a
+3516	1	ld	d,h
+3517	1	ld	c,c
+3518	1	ld	d,d
+3519	1	nop	
+3520	1	rst	38h
+3521	1	xor	e
+3522	1	and	h
+3523	1	ld	b,h
+3524	1	nop	
+3525	1	rst	38h
+3526	1	cp	e
+3527	1	ld	c,a
+3528	1	ld	d,h
+3529	1	ld	b,h
+3530	1	ld	d,d
+3531	1	nop	
+3532	1	nop	
+3533	1	ccf	
+3534	1	nop	
+3535	1	rst	38h
+3536	3	jp	0078dh
+3539	1	rst	0
+3540	3	jp	nz,00788h
+3543	1	rst	38h
+3544	2	jr	$-99
+3546	1	rlca	
+3547	1	rst	38h
+3548	1	jp	(hl)
+3549	1	ld	(hl),l
+3550	1	rlca	
+3551	1	rst	38h
+3552	3	call	007b1h
+3555	1	rst	0
+3556	3	call	nz,007ach
+3559	1	rst	38h
+3560	1	ret	
+3561	1	rst	8
+3562	1	rlca	
+3563	1	rst	0
+3564	1	ret	nz
+3565	3	jp	z,0ff07h
+3568	2	djnz	$-108
+3570	1	rlca	
+3571	1	rst	38h
+3572	2	jr	c,$+124
+3574	1	rlca	
+3575	1	rst	38h
+3576	2	jr	nc,$+128
+3578	1	rlca	
+3579	1	rst	38h
+3580	2	jr	z,$-124
+3582	1	rlca	
+3583	1	rst	38h
+3584	2	jr	nz,$-120
+3586	1	rlca	
+3587	1	rst	0
+3588	1	rst	0
+3589	1	ld	l,e
+3590	1	rlca	
+3591	1	rst	38h
+3595	1	rst	38h
+3596	2	cp	05fh
+3598	1	rlca	
+3599	1	ld	c,l
+3600	1	ld	c,a
+3601	1	ld	c,(hl)
+3602	1	ld	e,d
+3603	2	jr	c,$+50
+3605	2	jr	nz,$+69
+3607	1	ld	l,a
+3608	1	ld	l,l
+3609	1	ld	l,l
+3610	1	ld	h,c
+3611	1	ld	l,(hl)
+3612	1	ld	h,h
+3613	1	ld	(hl),e
+3614	3	ld	a,(0000ah)
+3617	1	ld	b,d
+3618	1	ld	d,d
+3619	2	jr	nz,$+50
+3621	1	dec	l
+3622	1	scf	
+3623	2	jr	nz,$+99
+3625	1	ld	h,h
+3626	1	ld	h,h
+3627	1	ld	(hl),d
+3628	1	ld	a,h
+3629	1	ld	d,e
+3630	1	ld	h,l
+3631	1	ld	(hl),h
+3632	2	jr	nz,$+100
+3634	1	ld	(hl),d
+3635	1	ld	h,l
+3636	1	ld	h,c
+3637	1	ld	l,e
+3638	1	ld	(hl),b
+3639	1	ld	l,a
+3640	1	ld	l,c
+3641	1	ld	l,(hl)
+3642	1	ld	(hl),h
+3643	2	jr	nz,$+42
+3645	2	jr	nc,$+50
+3647	2	jr	nc,$+50
+3649	2	jr	nz,$+101
+3651	1	ld	l,h
+3652	1	ld	h,l
+3653	1	ld	h,c
+3654	1	ld	(hl),d
+3655	1	ld	(hl),e
+3656	1	add	hl,hl
+3657	1	nop	
+3658	1	ld	b,h
+3659	1	ld	b,d
+3660	1	ld	a,h
+3661	1	ld	b,h
+3662	1	ld	l,c
+3663	1	ld	(hl),e
+3664	1	ld	(hl),b
+3665	1	ld	l,h
+3666	1	ld	h,c
+3667	1	ld	a,c
+3668	2	jr	nz,$+100
+3670	1	ld	(hl),d
+3671	1	ld	h,l
+3672	1	ld	h,c
+3673	1	ld	l,e
+3674	1	ld	(hl),b
+3675	1	ld	l,a
+3676	1	ld	l,c
+3677	1	ld	l,(hl)
+3678	1	ld	(hl),h
+3679	1	ld	(hl),e
+3680	1	nop	
+3681	1	ld	b,h
+3682	1	ld	c,c
+3683	2	jr	nz,$+104
+3685	1	ld	(hl),d
+3686	1	ld	l,a
+3687	1	ld	l,l
+3688	1	inc	l
+3689	1	ld	e,e
+3690	1	ld	(hl),h
+3691	1	ld	l,a
+3692	1	ld	e,l
+3693	1	ld	a,h
+3694	1	ld	b,h
+3695	1	ld	l,c
+3696	1	ld	(hl),e
+3697	1	ld	h,c
+3698	1	ld	(hl),e
+3699	1	ld	(hl),e
+3700	1	ld	h,l
+3701	1	ld	l,l
+3702	1	ld	h,d
+3703	1	ld	l,h
+3704	1	ld	h,l
+3705	2	jr	nz,$+111
+3707	1	ld	h,l
+3708	1	ld	l,l
+3709	1	ld	l,a
+3710	1	ld	(hl),d
+3711	1	ld	a,c
+3712	1	nop	
+3713	1	ld	b,h
+3714	1	ld	c,l
+3715	2	jr	nz,$+104
+3717	1	ld	(hl),d
+3718	1	ld	l,a
+3719	1	ld	l,l
+3720	1	inc	l
+3721	1	ld	e,e
+3722	1	ld	(hl),h
+3723	1	ld	l,a
+3724	1	ld	e,l
+3725	1	ld	a,h
+3726	1	ld	b,h
+3727	1	ld	(hl),l
+3728	1	ld	l,l
+3729	1	ld	(hl),b
+3730	2	jr	nz,$+111
+3732	1	ld	h,l
+3733	1	ld	l,l
+3734	1	ld	l,a
+3735	1	ld	(hl),d
+3736	1	ld	a,c
+3737	2	jr	nz,$+42
+3739	1	ld	c,b
+3740	1	ld	b,l
+3741	1	ld	e,b
+3742	1	cpl	
+3743	1	ld	b,c
+3744	1	ld	d,e
+3745	1	ld	b,e
+3746	1	ld	c,c
+3747	1	ld	c,c
+3748	1	add	hl,hl
+3749	1	nop	
+3750	1	ld	b,h
+3751	1	ld	d,d
+3752	1	ld	a,h
+3753	1	ld	b,h
+3754	1	ld	l,c
+3755	1	ld	(hl),e
+3756	1	ld	(hl),b
+3757	1	ld	l,h
+3758	1	ld	h,c
+3759	1	ld	a,c
+3760	2	jr	nz,$+92
+3762	2	jr	c,$+50
+3764	2	jr	nz,$+116
+3766	1	ld	h,l
+3767	1	ld	h,a
+3768	1	ld	l,c
+3769	1	ld	(hl),e
+3770	1	ld	(hl),h
+3771	1	ld	h,l
+3772	1	ld	(hl),d
+3773	1	ld	(hl),e
+3774	1	nop	
+3775	1	ld	b,l
+3776	2	jr	nz,$+99
+3778	1	ld	h,h
+3779	1	ld	h,h
+3780	1	ld	(hl),d
+3781	1	ld	a,h
+3782	1	ld	b,l
+3783	1	ld	h,h
+3784	1	ld	l,c
+3785	1	ld	(hl),h
+3786	2	jr	nz,$+111
+3788	1	ld	h,l
+3789	1	ld	l,l
+3790	1	ld	l,a
+3791	1	ld	(hl),d
+3792	1	ld	a,c
+3793	1	nop	
+3794	1	ld	b,(hl)
+3795	2	jr	nz,$+104
+3797	1	ld	(hl),d
+3798	1	ld	l,a
+3799	1	ld	l,l
+3800	1	inc	l
+3801	1	ld	(hl),h
+3802	1	ld	l,a
+3803	2	jr	nz,$+120
+3805	1	ld	h,c
+3806	1	ld	l,h
+3807	1	ld	(hl),l
+3808	1	ld	h,l
+3809	1	ld	a,h
+3810	1	ld	b,(hl)
+3811	1	ld	l,c
+3812	1	ld	l,h
+3813	1	ld	l,h
+3814	2	jr	nz,$+111
+3816	1	ld	h,l
+3817	1	ld	l,l
+3818	1	ld	l,a
+3819	1	ld	(hl),d
+3820	1	ld	a,c
+3821	1	nop	
+3822	1	ld	b,a
+3823	2	jr	nz,$+93
+3825	1	ld	h,c
+3826	1	ld	h,h
+3827	1	ld	h,h
+3828	1	ld	(hl),d
+3829	1	ld	e,l
+3830	1	ld	a,h
+3831	1	ld	b,a
+3832	1	ld	l,a
+3833	2	jr	nz,$+42
+3835	1	ld	h,l
+3836	1	ld	a,b
+3837	1	ld	h,l
+3838	1	ld	h,e
+3839	1	ld	(hl),l
+3840	1	ld	(hl),h
+3841	1	ld	h,l
+3842	1	add	hl,hl
+3843	1	nop	
+3844	1	ld	c,c
+3845	2	jr	nz,$+114
+3847	1	ld	l,a
+3848	1	ld	(hl),d
+3849	1	ld	(hl),h
+3850	1	ld	a,h
+3851	1	ld	d,d
+3852	1	ld	h,l
+3853	1	ld	h,c
+3854	1	ld	h,h
+3855	1	cpl	
+3856	1	ld	b,h
+3857	1	ld	l,c
+3858	1	ld	(hl),e
+3859	1	ld	(hl),b
+3860	1	ld	l,h
+3861	1	ld	h,c
+3862	1	ld	a,c
+3863	2	jr	nz,$+75
+3865	1	cpl	
+3866	1	ld	c,a
+3867	2	jr	nz,$+114
+3869	1	ld	l,a
+3870	1	ld	(hl),d
+3871	1	ld	(hl),h
+3872	1	nop	
+3873	1	ld	c,h
+3874	1	ld	a,h
+3875	1	ld	c,h
+3876	1	ld	l,a
+3877	1	ld	h,c
+3878	1	ld	h,h
+3879	2	jr	nz,$+48
+3881	1	ld	c,b
+3882	1	ld	b,l
+3883	1	ld	e,b
+3884	2	jr	nz,$+104
+3886	1	ld	l,c
+3887	1	ld	l,h
+3888	1	ld	h,l
+3889	1	nop	
+3890	1	ld	c,a
+3891	2	jr	nz,$+114
+3893	1	ld	l,a
+3894	1	ld	(hl),d
+3895	1	ld	(hl),h
+3896	2	jr	nz,$+120
+3898	1	ld	h,c
+3899	1	ld	l,h
+3900	1	ld	(hl),l
+3901	1	ld	h,l
+3902	1	ld	a,h
+3903	1	ld	d,a
+3904	1	ld	(hl),d
+3905	1	ld	l,c
+3906	1	ld	(hl),h
+3907	1	ld	h,l
+3908	2	jr	nz,$+75
+3910	1	cpl	
+3911	1	ld	c,a
+3912	2	jr	nz,$+114
+3914	1	ld	l,a
+3915	1	ld	(hl),d
+3916	1	ld	(hl),h
+3917	1	nop	
+3918	1	ld	d,h
+3919	1	ld	a,h
+3920	1	ld	d,h
+3921	1	ld	(hl),d
+3922	1	ld	h,c
+3923	1	ld	h,e
+3924	1	ld	h,l
+3925	2	jr	nz,$+42
+3927	1	ld	(hl),e
+3928	1	ld	l,c
+3929	1	ld	l,(hl)
+3930	1	ld	h,a
+3931	1	ld	l,h
+3932	1	ld	h,l
+3933	1	dec	l
+3934	1	ld	(hl),e
+3935	1	ld	(hl),h
+3936	1	ld	h,l
+3937	1	ld	(hl),b
+3938	1	add	hl,hl
+3939	1	nop	
+3940	1	ld	b,c
+3941	1	ld	b,(hl)
+3942	1	inc	l
+3943	1	ld	b,d
+3944	1	ld	b,e
+3945	1	inc	l
+3946	1	ld	b,h
+3947	1	ld	b,l
+3948	1	inc	l
+3949	1	ld	c,b
+3950	1	ld	c,h
+3951	1	nop	
+3952	1	ld	c,c
+3953	1	ld	e,b
+3954	1	inc	l
+3955	1	ld	c,c
+3956	1	ld	e,c
+3957	1	inc	l
+3958	1	ld	d,e
+3959	1	ld	d,b
+3960	1	inc	l
+3961	1	ld	d,b
+3962	1	ld	b,e
+3963	2	jr	nz,$+120
+3965	1	ld	h,c
+3966	1	ld	l,h
+3967	1	ld	(hl),l
+3968	1	ld	h,l
+3969	1	ld	a,h
+3970	1	ld	d,e
+3971	1	ld	h,l
+3972	1	ld	(hl),h
+3973	2	jr	nz,$+116
+3975	1	ld	h,l
+3976	1	ld	h,a
+3977	1	ld	l,c
+3978	1	ld	(hl),e
+3979	1	ld	(hl),h
+3980	1	ld	h,l
+3981	1	ld	(hl),d
+3982	2	jr	nz,$+120
+3984	1	ld	h,c
+3985	1	ld	l,h
+3986	1	ld	(hl),l
+3987	1	ld	h,l
+3988	1	nop	
+3989	1	nop	
+3990	2	ld	a,003h
+3992	2	out	(080h),a
+3994	2	out	(080h),a
+3996	2	ld	a,077h
+3998	2	out	(080h),a
+4000	2	ld	a,015h
+4002	2	out	(080h),a
+4004	1	ret	
+4005	2	in	a,(080h)
+4007	2	and	001h
+4009	1	ret	z
+4010	2	in	a,(081h)
+4012	1	ret	
+4013	1	push	af
+4014	2	in	a,(080h)
+4016	2	and	002h
+4018	2	jr	z,$-4
+4020	1	pop	af
+4021	2	out	(081h),a
+4023	1	ret	

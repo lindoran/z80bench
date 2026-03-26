@@ -17,8 +17,11 @@
 static const char * const map_type_names[] =
     { "ROM", "RAM", "VRAM", "IO", "SYSVARS", "UNMAPPED",
       "Direct Byte Range", "Define Message Range", NULL };
-static const MapType map_type_values[] =
-    { MAP_ROM, MAP_RAM, MAP_VRAM, MAP_IO, MAP_SYSVARS, MAP_UNMAPPED,
+static const char * const map_type_edit_names[] =
+    { "ROM", "RAM", "VRAM", "IO", "SYSVARS",
+      "Direct Byte Range", "Define Message Range", NULL };
+static const MapType map_type_edit_values[] =
+    { MAP_ROM, MAP_RAM, MAP_VRAM, MAP_IO, MAP_SYSVARS,
       MAP_DIRECT_BYTE, MAP_DEFINE_MSG };
 
 static const char * const sym_type_names[] =
@@ -48,6 +51,20 @@ static const char *sym_type_colour(SymbolType t) {
         case SYM_PORT:       return "#D485EB";
         default:             return "#888";
     }
+}
+
+static const char *map_type_name(MapType t) {
+    if (t < 0 || t >= MAP_DEFINE_MSG + 1)
+        return "UNKNOWN";
+    return map_type_names[t];
+}
+
+static int map_edit_index_from_type(MapType t) {
+    for (int i = 0; i < (int)G_N_ELEMENTS(map_type_edit_values); i++) {
+        if (map_type_edit_values[i] == t)
+            return i;
+    }
+    return 0;
 }
 
 static void apply_panel_list_style(GtkWidget *list) {
@@ -177,6 +194,8 @@ static void map_dialog_set_entry(MapEditCtx *ctx, const MapEntry *e, int idx);
 static gboolean map_entry_from_form(MapEditCtx *ctx, MapEntry *e);
 static void segment_refresh_auto_name(MapEditCtx *ctx, gboolean force);
 static void on_segment_form_changed(GtkEditable *editable, gpointer ud);
+static void map_list_populate(MapPanelCtx *ctx);
+static void map_dialog_populate(MapEditCtx *ctx);
 
 static void map_show_form_error(MapEditCtx *ctx, const char *title, const char *detail) {
     GtkAlertDialog *alert = gtk_alert_dialog_new("%s", title);
@@ -210,6 +229,59 @@ static gboolean map_parse_int_field(MapEditCtx *ctx, GtkWidget *entry,
 
 static gboolean map_entry_is_segment(MapType t) {
     return t == MAP_DIRECT_BYTE || t == MAP_DEFINE_MSG;
+}
+
+static gboolean map_entry_is_parent(MapType t) {
+    return t == MAP_ROM || t == MAP_RAM || t == MAP_VRAM ||
+           t == MAP_IO || t == MAP_SYSVARS;
+}
+
+static gboolean map_project_span_bounds_for_project(const Project *p,
+                                                    int *project_start, int *project_end) {
+    if (!p) return FALSE;
+    if (p->rom_size <= 0) return FALSE;
+
+    int start = p->load_addr;
+    int end = start + p->rom_size - 1;
+    if (project_start) *project_start = start;
+    if (project_end) *project_end = end;
+    return TRUE;
+}
+
+static gboolean map_project_span_bounds(const MapEditCtx *ctx,
+                                        int *project_start, int *project_end) {
+    if (!ctx || !ctx->project) return FALSE;
+    return map_project_span_bounds_for_project(ctx->project, project_start, project_end);
+}
+
+static gboolean map_entry_within_project_span(const MapEditCtx *ctx,
+                                              const MapEntry *e) {
+    int project_start = 0, project_end = 0;
+    if (!map_project_span_bounds(ctx, &project_start, &project_end))
+        return FALSE;
+    return e && e->start >= project_start && e->end <= project_end;
+}
+
+static void map_ensure_default_rom_segment(Project *p) {
+    if (!p) return;
+    int span_start = 0, span_end = 0;
+    if (!map_project_span_bounds_for_project(p, &span_start, &span_end))
+        return;
+
+    if (!p->map) {
+        p->map = memmap_new();
+        if (!p->map) return;
+    }
+    if (memmap_count(p->map) > 0)
+        return;
+
+    MapEntry e;
+    memset(&e, 0, sizeof(e));
+    strncpy(e.name, "ROM", sizeof(e.name) - 1);
+    e.start = span_start;
+    e.end = span_end;
+    e.type = MAP_ROM;
+    (void)memmap_add(p->map, &e);
 }
 
 static gboolean map_run_command(MapEditCtx *ctx, UISegmentCmdType type, int index,
@@ -282,48 +354,143 @@ static int map_entry_cmp_by_addr(const void *a, const void *b, gpointer user_dat
     return ia - ib;
 }
 
-static int map_build_display_order(Project *p, int *order, int cap) {
-    if (!p || !p->map || !order || cap <= 0) return 0;
-    int n = memmap_count(p->map);
-    if (n <= 0) return 0;
+static gboolean map_entry_is_parent_like(MapType t) {
+    return map_entry_is_parent(t);
+}
 
-    int mains[100];
-    int segs[100];
-    gboolean seg_used[100] = {0};
-    int nm = 0, ns = 0;
+static gboolean map_parent_contains_segment(const MapEntry *parent, const MapEntry *seg) {
+    if (!parent || !seg) return FALSE;
+    return parent->start <= seg->start && seg->end <= parent->end;
+}
+
+static int map_collect_sorted_indices(Project *p, int *parents, int *np,
+                                      int *segs, int *ns, int cap) {
+    if (!p || !p->map || cap <= 0) return 0;
+    int n = memmap_count(p->map);
+    int nparents = 0, nsegs = 0;
 
     for (int i = 0; i < n; i++) {
         const MapEntry *e = memmap_get(p->map, i);
         if (!e) continue;
-        if (map_entry_is_segment(e->type)) segs[ns++] = i;
-        else mains[nm++] = i;
-    }
-
-    if (nm > 1) g_qsort_with_data(mains, nm, sizeof(int), map_entry_cmp_by_addr, p);
-    if (ns > 1) g_qsort_with_data(segs, ns, sizeof(int), map_entry_cmp_by_addr, p);
-
-    int out = 0;
-    for (int mi = 0; mi < nm && out < cap; mi++) {
-        const MapEntry *m = memmap_get(p->map, mains[mi]);
-        if (!m) continue;
-        order[out++] = mains[mi];
-        for (int si = 0; si < ns && out < cap; si++) {
-            if (seg_used[si]) continue;
-            const MapEntry *s = memmap_get(p->map, segs[si]);
-            if (!s) continue;
-            if (s->start >= m->start && s->end <= m->end) {
-                order[out++] = segs[si];
-                seg_used[si] = TRUE;
-            }
+        if (map_entry_is_segment(e->type)) {
+            if (nsegs < cap) segs[nsegs++] = i;
+            continue;
+        }
+        if (map_entry_is_parent_like(e->type)) {
+            if (nparents < cap) parents[nparents++] = i;
         }
     }
+    if (nparents > 1)
+        g_qsort_with_data(parents, nparents, sizeof(int), map_entry_cmp_by_addr, p);
+    if (nsegs > 1)
+        g_qsort_with_data(segs, nsegs, sizeof(int), map_entry_cmp_by_addr, p);
 
-    for (int si = 0; si < ns && out < cap; si++) {
-        if (!seg_used[si])
-            order[out++] = segs[si];
+    if (np) *np = nparents;
+    if (ns) *ns = nsegs;
+    return nparents + nsegs;
+}
+
+static int map_pick_owner_parent(Project *p, const int *parents, int np, const MapEntry *seg) {
+    int best_parent = -1;
+    int best_span = 0x7FFFFFFF;
+    int best_start = 0x7FFFFFFF;
+    for (int i = 0; i < np; i++) {
+        int idx = parents[i];
+        const MapEntry *cur = memmap_get(p->map, idx);
+        if (!cur || !map_entry_is_parent(cur->type)) continue;
+        if (!map_parent_contains_segment(cur, seg)) continue;
+
+        int span = cur->end - cur->start;
+        if (best_parent < 0 || span < best_span ||
+            (span == best_span && cur->start < best_start)) {
+            best_parent = idx;
+            best_span = span;
+            best_start = cur->start;
+        }
     }
+    return best_parent;
+}
 
-    return out;
+static void map_list_append_entry_row(GtkWidget *list, const MapEntry *e, int entry_index,
+                                      gboolean is_child) {
+    GtkWidget *rb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_start(rb, is_child ? 20 : 6);
+    gtk_widget_set_margin_end(rb, 6);
+    gtk_widget_set_margin_top(rb, 2);
+    gtk_widget_set_margin_bottom(rb, 2);
+
+    GtkWidget *nl = gtk_label_new(NULL);
+    char name_text[DISASM_LABEL_MAX + 4];
+    if (is_child) snprintf(name_text, sizeof(name_text), "%s", e->name);
+    else snprintf(name_text, sizeof(name_text), "- %s", e->name);
+    char *m = g_markup_printf_escaped(
+        "<span color='%s' face='monospace'>%s</span>",
+        map_type_colour(e->type), name_text);
+    gtk_label_set_markup(GTK_LABEL(nl), m);
+    g_free(m);
+    gtk_label_set_xalign(GTK_LABEL(nl), 0.0);
+    gtk_label_set_ellipsize(GTK_LABEL(nl), PANGO_ELLIPSIZE_END);
+    gtk_label_set_single_line_mode(GTK_LABEL(nl), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(nl), 28);
+    gtk_widget_set_hexpand(nl, TRUE);
+    gtk_box_append(GTK_BOX(rb), nl);
+
+    char range[24];
+    snprintf(range, sizeof(range), "%04X-%04X", e->start, e->end);
+    GtkWidget *rl = gtk_label_new(NULL);
+    char *rm = g_markup_printf_escaped(
+        "<span color='#888' face='monospace'>%s</span>", range);
+    gtk_label_set_markup(GTK_LABEL(rl), rm);
+    g_free(rm);
+    gtk_box_append(GTK_BOX(rb), rl);
+
+    GtkWidget *tl = gtk_label_new(NULL);
+    char *tm = g_markup_printf_escaped(
+        "<span color='%s' size='small'>%s</span>",
+        map_type_colour(e->type), map_type_name(e->type));
+    gtk_label_set_markup(GTK_LABEL(tl), tm);
+    g_free(tm);
+    gtk_label_set_xalign(GTK_LABEL(tl), 1.0);
+    gtk_label_set_ellipsize(GTK_LABEL(tl), PANGO_ELLIPSIZE_END);
+    gtk_label_set_single_line_mode(GTK_LABEL(tl), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(tl), 14);
+    gtk_box_append(GTK_BOX(rb), tl);
+
+    GtkListBoxRow *lbr = GTK_LIST_BOX_ROW(gtk_list_box_row_new());
+    gtk_list_box_row_set_child(lbr, rb);
+    gtk_list_box_row_set_selectable(lbr, FALSE);
+    gtk_list_box_row_set_activatable(lbr, FALSE);
+    g_object_set_data(G_OBJECT(lbr), "entry-index", GINT_TO_POINTER(entry_index));
+    gtk_list_box_append(GTK_LIST_BOX(list), GTK_WIDGET(lbr));
+}
+
+static void map_dialog_append_entry_row(MapEditCtx *ctx, const MapEntry *e,
+                                        int entry_index, gboolean is_child) {
+    GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_start(row_box, is_child ? 20 : 6);
+    gtk_widget_set_margin_top(row_box, 2);
+    gtk_widget_set_margin_bottom(row_box, 2);
+
+    char text[120];
+    char name_text[DISASM_LABEL_MAX + 4];
+    if (is_child) snprintf(name_text, sizeof(name_text), "%s", e->name);
+    else snprintf(name_text, sizeof(name_text), "- %s", e->name);
+    snprintf(text, sizeof(text), "%-20s  %04X-%04X  %s",
+             name_text, e->start, e->end, map_type_name(e->type));
+    GtkWidget *lbl = gtk_label_new(NULL);
+    char *m = g_markup_printf_escaped("<span face='monospace'>%s</span>", text);
+    gtk_label_set_markup(GTK_LABEL(lbl), m);
+    g_free(m);
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+    gtk_widget_set_margin_start(lbl, 0);
+    gtk_widget_set_margin_top(lbl, 0);
+    gtk_widget_set_margin_bottom(lbl, 0);
+    gtk_box_append(GTK_BOX(row_box), lbl);
+
+    GtkListBoxRow *row = GTK_LIST_BOX_ROW(gtk_list_box_row_new());
+    gtk_list_box_row_set_child(row, row_box);
+    g_object_set_data(G_OBJECT(row), "entry-index", GINT_TO_POINTER(entry_index));
+    gtk_list_box_append(GTK_LIST_BOX(ctx->dialog_list), GTK_WIDGET(row));
 }
 
 static gboolean map_entries_overlap(const MapEntry *a, const MapEntry *b) {
@@ -331,17 +498,18 @@ static gboolean map_entries_overlap(const MapEntry *a, const MapEntry *b) {
 }
 
 static void segment_dialog_apply_prefill(MapEditCtx *ctx) {
-    if (!ctx->have_prefill) return;
     ctx->updating_form = TRUE;
-    char buf[32];
-    snprintf(buf, sizeof(buf), "0x%04X", ctx->prefill_start);
-    gtk_editable_set_text(GTK_EDITABLE(ctx->start_entry), buf);
-    snprintf(buf, sizeof(buf), "0x%04X", ctx->prefill_end);
-    gtk_editable_set_text(GTK_EDITABLE(ctx->end_entry), buf);
+    if (ctx->have_prefill) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "0x%04X", ctx->prefill_start);
+        gtk_editable_set_text(GTK_EDITABLE(ctx->start_entry), buf);
+        snprintf(buf, sizeof(buf), "0x%04X", ctx->prefill_end);
+        gtk_editable_set_text(GTK_EDITABLE(ctx->end_entry), buf);
+    }
     if (ctx->have_name)
         gtk_editable_set_text(GTK_EDITABLE(ctx->name_entry), ctx->prefill_name);
     if (ctx->have_type)
-        gtk_drop_down_set_selected(ctx->type_drop, ctx->prefill_type);
+        gtk_drop_down_set_selected(ctx->type_drop, map_edit_index_from_type(ctx->prefill_type));
     ctx->updating_form = FALSE;
 }
 
@@ -349,65 +517,53 @@ static void segment_dialog_present(MapEditCtx *ctx) {
     gtk_window_present(GTK_WINDOW(ctx->dialog));
 }
 
-static void map_list_populate(GtkWidget *list, Project *p) {
+static void map_list_populate(MapPanelCtx *ctx) {
+    if (!ctx || !ctx->panel_list || !ctx->project) return;
+    GtkWidget *list = ctx->panel_list;
+    Project *p = ctx->project;
     GtkWidget *c;
     while ((c = gtk_widget_get_first_child(list)))
         gtk_list_box_remove(GTK_LIST_BOX(list), c);
 
-    int order[100];
-    int n = map_build_display_order(p, order, (int)G_N_ELEMENTS(order));
-    if (n == 0) {
+    int parents[100], segs[100];
+    int np = 0, ns = 0;
+    map_collect_sorted_indices(p, parents, &np, segs, &ns, (int)G_N_ELEMENTS(parents));
+    gboolean seg_used[100] = {0};
+    gboolean have_rows = FALSE;
+
+    for (int pi = 0; pi < np; pi++) {
+        int pidx = parents[pi];
+        const MapEntry *parent = memmap_get(p->map, pidx);
+        if (!parent) continue;
+        map_list_append_entry_row(list, parent, pidx, FALSE);
+        have_rows = TRUE;
+        for (int si = 0; si < ns; si++) {
+            if (seg_used[si]) continue;
+            int sidx = segs[si];
+            const MapEntry *seg = memmap_get(p->map, sidx);
+            if (!seg) continue;
+            if (map_pick_owner_parent(p, parents, np, seg) == pidx) {
+                map_list_append_entry_row(list, seg, sidx, TRUE);
+                seg_used[si] = TRUE;
+                have_rows = TRUE;
+            }
+        }
+    }
+
+    for (int si = 0; si < ns; si++) {
+        if (seg_used[si]) continue;
+        int sidx = segs[si];
+        const MapEntry *seg = memmap_get(p->map, sidx);
+        if (!seg) continue;
+        map_list_append_entry_row(list, seg, sidx, FALSE);
+        have_rows = TRUE;
+    }
+
+    if (!have_rows) {
         GtkWidget *lbl = gtk_label_new("No segments");
         gtk_widget_set_margin_top(lbl, 4);
         gtk_widget_set_margin_bottom(lbl, 4);
         gtk_list_box_append(GTK_LIST_BOX(list), lbl);
-        return;
-    }
-    for (int pos = 0; pos < n; pos++) {
-        int i = order[pos];
-        const MapEntry *e = memmap_get(p->map, i);
-        if (!e) continue;
-        GtkWidget *rb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-        gtk_widget_set_margin_start(rb, 6); gtk_widget_set_margin_end(rb, 6);
-        gtk_widget_set_margin_top(rb, 2);   gtk_widget_set_margin_bottom(rb, 2);
-
-        GtkWidget *nl = gtk_label_new(NULL);
-        char *m = g_markup_printf_escaped(
-            "<span color='%s' face='monospace'>%s</span>",
-            map_type_colour(e->type), e->name);
-        gtk_label_set_markup(GTK_LABEL(nl), m); g_free(m);
-        gtk_label_set_xalign(GTK_LABEL(nl), 0.0);
-        gtk_label_set_ellipsize(GTK_LABEL(nl), PANGO_ELLIPSIZE_END);
-        gtk_label_set_single_line_mode(GTK_LABEL(nl), TRUE);
-        gtk_label_set_max_width_chars(GTK_LABEL(nl), 28);
-        gtk_widget_set_hexpand(nl, TRUE);
-        gtk_box_append(GTK_BOX(rb), nl);
-
-        char range[24];
-        snprintf(range, sizeof(range), "%04X-%04X", e->start, e->end);
-        GtkWidget *rl = gtk_label_new(NULL);
-        char *rm = g_markup_printf_escaped(
-            "<span color='#888' face='monospace'>%s</span>", range);
-        gtk_label_set_markup(GTK_LABEL(rl), rm); g_free(rm);
-        gtk_box_append(GTK_BOX(rb), rl);
-
-        GtkWidget *tl = gtk_label_new(NULL);
-        char *tm = g_markup_printf_escaped(
-            "<span color='%s' size='small'>%s</span>",
-            map_type_colour(e->type), map_type_names[e->type]);
-        gtk_label_set_markup(GTK_LABEL(tl), tm); g_free(tm);
-        gtk_label_set_xalign(GTK_LABEL(tl), 1.0);
-        gtk_label_set_ellipsize(GTK_LABEL(tl), PANGO_ELLIPSIZE_END);
-        gtk_label_set_single_line_mode(GTK_LABEL(tl), TRUE);
-        gtk_label_set_max_width_chars(GTK_LABEL(tl), 14);
-        gtk_box_append(GTK_BOX(rb), tl);
-
-        GtkListBoxRow *lbr = GTK_LIST_BOX_ROW(gtk_list_box_row_new());
-        gtk_list_box_row_set_child(lbr, rb);
-        gtk_list_box_row_set_selectable(lbr, FALSE);
-        gtk_list_box_row_set_activatable(lbr, FALSE);
-        g_object_set_data(G_OBJECT(lbr), "entry-index", GINT_TO_POINTER(i));
-        gtk_list_box_append(GTK_LIST_BOX(list), GTK_WIDGET(lbr));
     }
 }
 
@@ -416,36 +572,51 @@ static void map_dialog_populate(MapEditCtx *ctx) {
     while ((c = gtk_widget_get_first_child(ctx->dialog_list)))
         gtk_list_box_remove(GTK_LIST_BOX(ctx->dialog_list), c);
 
-    int order[100];
-    int n = map_build_display_order(ctx->project, order, (int)G_N_ELEMENTS(order));
-    if (n == 0) {
+    int parents[100], segs[100];
+    int np = 0, ns = 0;
+    map_collect_sorted_indices(ctx->project, parents, &np, segs, &ns,
+                               (int)G_N_ELEMENTS(parents));
+    gboolean seg_used[100] = {0};
+    gboolean have_rows = FALSE;
+
+    for (int pi = 0; pi < np; pi++) {
+        int pidx = parents[pi];
+        const MapEntry *parent = memmap_get(ctx->project->map, pidx);
+        if (!parent) continue;
+        map_dialog_append_entry_row(ctx, parent, pidx, FALSE);
+        have_rows = TRUE;
+        for (int si = 0; si < ns; si++) {
+            if (seg_used[si]) continue;
+            int sidx = segs[si];
+            const MapEntry *seg = memmap_get(ctx->project->map, sidx);
+            if (!seg) continue;
+            if (map_pick_owner_parent(ctx->project, parents, np, seg) == pidx) {
+                map_dialog_append_entry_row(ctx, seg, sidx, TRUE);
+                seg_used[si] = TRUE;
+                have_rows = TRUE;
+            }
+        }
+    }
+
+    for (int si = 0; si < ns; si++) {
+        if (seg_used[si]) continue;
+        int sidx = segs[si];
+        const MapEntry *seg = memmap_get(ctx->project->map, sidx);
+        if (!seg) continue;
+        map_dialog_append_entry_row(ctx, seg, sidx, FALSE);
+        have_rows = TRUE;
+    }
+
+    if (!have_rows) {
         GtkListBoxRow *row = GTK_LIST_BOX_ROW(gtk_list_box_row_new());
         GtkWidget *lbl = gtk_label_new("No segments");
         gtk_widget_set_margin_start(lbl, 6);
         gtk_widget_set_margin_top(lbl, 2);
         gtk_widget_set_margin_bottom(lbl, 2);
         gtk_list_box_row_set_child(row, lbl);
+        gtk_list_box_row_set_selectable(row, FALSE);
+        gtk_list_box_row_set_activatable(row, FALSE);
         g_object_set_data(G_OBJECT(row), "entry-index", GINT_TO_POINTER(-1));
-        gtk_list_box_append(GTK_LIST_BOX(ctx->dialog_list), GTK_WIDGET(row));
-        return;
-    }
-    for (int pos = 0; pos < n; pos++) {
-        int i = order[pos];
-        const MapEntry *e = memmap_get(ctx->project->map, i);
-        if (!e) continue;
-        char text[96];
-        snprintf(text, sizeof(text), "%-14s  %04X-%04X  %s",
-                 e->name, e->start, e->end, map_type_names[e->type]);
-        GtkWidget *lbl = gtk_label_new(NULL);
-        char *m = g_markup_printf_escaped("<span face='monospace'>%s</span>", text);
-        gtk_label_set_markup(GTK_LABEL(lbl), m); g_free(m);
-        gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-        gtk_widget_set_margin_start(lbl, 6);
-        gtk_widget_set_margin_top(lbl, 2); gtk_widget_set_margin_bottom(lbl, 2);
-
-        GtkListBoxRow *row = GTK_LIST_BOX_ROW(gtk_list_box_row_new());
-        gtk_list_box_row_set_child(row, lbl);
-        g_object_set_data(G_OBJECT(row), "entry-index", GINT_TO_POINTER(i));
         gtk_list_box_append(GTK_LIST_BOX(ctx->dialog_list), GTK_WIDGET(row));
     }
 }
@@ -473,7 +644,7 @@ static void map_dialog_set_entry(MapEditCtx *ctx, const MapEntry *e, int idx) {
     gtk_editable_set_text(GTK_EDITABLE(ctx->start_entry), buf);
     snprintf(buf, sizeof(buf), "0x%04X", e->end);
     gtk_editable_set_text(GTK_EDITABLE(ctx->end_entry), buf);
-    gtk_drop_down_set_selected(ctx->type_drop, e->type);
+    gtk_drop_down_set_selected(ctx->type_drop, map_edit_index_from_type(e->type));
     ctx->updating_form = FALSE;
     ctx->selected_index = idx;
     if (ctx->update_btn)
@@ -499,11 +670,34 @@ static gboolean map_entry_from_form(MapEditCtx *ctx, MapEntry *e) {
         return FALSE;
     }
     guint sel = gtk_drop_down_get_selected(ctx->type_drop);
-    if (sel >= G_N_ELEMENTS(map_type_values)) {
+    if (sel >= G_N_ELEMENTS(map_type_edit_values)) {
         map_show_form_error(ctx, "Invalid segment", "Type selection is invalid.");
         return FALSE;
     }
-    e->type  = map_type_values[sel];
+    e->type  = map_type_edit_values[sel];
+    if (e->type == MAP_UNMAPPED) {
+        map_show_form_error(
+            ctx,
+            "Invalid segment",
+            "UNMAPPED is derived automatically. Choose a concrete range type.");
+        return FALSE;
+    }
+    if (!map_entry_within_project_span(ctx, e)) {
+        int project_start = 0, project_end = 0;
+        if (!map_project_span_bounds(ctx, &project_start, &project_end)) {
+            map_show_form_error(
+                ctx,
+                "Invalid segment",
+                "Project ROM span is unavailable. Open or import a valid project first.");
+            return FALSE;
+        }
+        char detail[192];
+        snprintf(detail, sizeof(detail),
+                 "Range must be inside project span 0x%04X-0x%04X.",
+                 project_start & 0xFFFF, project_end & 0xFFFF);
+        map_show_form_error(ctx, "Invalid segment", detail);
+        return FALSE;
+    }
     return TRUE;
 }
 
@@ -511,7 +705,10 @@ static void segment_build_auto_name(MapEditCtx *ctx, char *buf, size_t buf_sz) {
     buf[0] = '\0';
     if (!ctx) return;
 
-    MapType type = map_type_values[gtk_drop_down_get_selected(ctx->type_drop)];
+    guint sel = gtk_drop_down_get_selected(ctx->type_drop);
+    if (sel >= G_N_ELEMENTS(map_type_edit_values))
+        return;
+    MapType type = map_type_edit_values[sel];
     int start = (int)strtol(gtk_editable_get_text(GTK_EDITABLE(ctx->start_entry)), NULL, 0);
     int end   = (int)strtol(gtk_editable_get_text(GTK_EDITABLE(ctx->end_entry)),   NULL, 0);
 
@@ -648,6 +845,20 @@ static gboolean map_entry_overlaps_other_segment(MapEditCtx *ctx, const MapEntry
     return FALSE;
 }
 
+static gboolean map_entry_overlaps_other_parent(MapEditCtx *ctx, const MapEntry *e,
+                                                int skip_index) {
+    if (!ctx || !ctx->project || !ctx->project->map || !e) return FALSE;
+    if (!map_entry_is_parent(e->type)) return FALSE;
+
+    for (int i = 0; i < memmap_count(ctx->project->map); i++) {
+        const MapEntry *cur = memmap_get(ctx->project->map, i);
+        if (!cur || i == skip_index || !map_entry_is_parent(cur->type)) continue;
+        if (map_entries_overlap(e, cur))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 static void on_map_update(GtkButton *btn, gpointer ud) {
     MapEditCtx *ctx = ud;
     if (ctx->selected_index < 0) return;
@@ -669,6 +880,17 @@ static void on_map_update(GtkButton *btn, gpointer ud) {
         g_object_unref(alert);
         return;
     }
+    if (map_entry_overlaps_other_parent(ctx, &e, ctx->selected_index)) {
+        GtkAlertDialog *alert = gtk_alert_dialog_new(
+            "Parent ranges cannot overlap");
+        gtk_alert_dialog_set_detail(
+            alert,
+            "ROM/RAM/VRAM/IO/SYSVARS ranges must be disjoint. "
+            "Adjust this range or edit the conflicting parent range.");
+        gtk_alert_dialog_show(alert, GTK_WINDOW(ctx->dialog));
+        g_object_unref(alert);
+        return;
+    }
 
     if (exact_idx >= 0 && exact_idx != ctx->selected_index) {
         if (!map_run_command(ctx, UI_SEGMENT_CMD_REMOVE, exact_idx, NULL, NULL))
@@ -683,7 +905,10 @@ static void on_map_update(GtkButton *btn, gpointer ud) {
     ctx->needs_reload = TRUE;
     ctx->pending_jump_addr = e.start;
     ctx->have_pending_jump = TRUE;
-    map_list_populate(ctx->panel_list, ctx->project);
+    if (ctx->panel_list) {
+        MapPanelCtx *pctx = g_object_get_data(G_OBJECT(ctx->panel_list), "map-panel-ctx");
+        if (pctx) map_list_populate(pctx);
+    }
     map_dialog_populate(ctx);
     if (ctx->dialog_list) {
         GtkListBoxRow *row = find_row_by_entry_index(ctx->dialog_list, ctx->selected_index);
@@ -816,6 +1041,10 @@ static void on_map_remove(GtkButton *btn, gpointer ud) {
     if (ctx->update_btn)
         gtk_widget_set_sensitive(ctx->update_btn, FALSE);
     map_dialog_populate(ctx);
+    if (ctx->panel_list) {
+        MapPanelCtx *pctx = g_object_get_data(G_OBJECT(ctx->panel_list), "map-panel-ctx");
+        if (pctx) map_list_populate(pctx);
+    }
 }
 
 static void on_map_add(GtkButton *btn, gpointer ud) {
@@ -842,6 +1071,18 @@ static void on_map_add(GtkButton *btn, gpointer ud) {
             }
         }
     }
+    if (map_entry_is_parent(e.type) &&
+        map_entry_overlaps_other_parent(ctx, &e, -1)) {
+        GtkAlertDialog *alert = gtk_alert_dialog_new(
+            "Parent ranges cannot overlap");
+        gtk_alert_dialog_set_detail(
+            alert,
+            "ROM/RAM/VRAM/IO/SYSVARS ranges must be disjoint. "
+            "Adjust this range or edit the existing parent range.");
+        gtk_alert_dialog_show(alert, GTK_WINDOW(ctx->dialog));
+        g_object_unref(alert);
+        return;
+    }
 
     int new_index = -1;
     if (!map_run_command(ctx, UI_SEGMENT_CMD_ADD, -1, &e, &new_index))
@@ -855,6 +1096,10 @@ static void on_map_add(GtkButton *btn, gpointer ud) {
         ctx->have_pending_jump = TRUE;
     }
     map_dialog_populate(ctx);
+    if (ctx->panel_list) {
+        MapPanelCtx *pctx = g_object_get_data(G_OBJECT(ctx->panel_list), "map-panel-ctx");
+        if (pctx) map_list_populate(pctx);
+    }
     GtkListBoxRow *new_row = find_row_by_entry_index(ctx->dialog_list, new_index);
     if (new_row)
         gtk_list_box_select_row(GTK_LIST_BOX(ctx->dialog_list), new_row);
@@ -942,9 +1187,9 @@ static MapEditCtx *segment_dialog_create(MapPanelCtx *pctx) {
     g_signal_connect(ctx->end_entry, "changed", G_CALLBACK(on_segment_form_changed), ctx);
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Type"),  0, 3, 1, 1);
-    ctx->type_drop = GTK_DROP_DOWN(gtk_drop_down_new_from_strings(map_type_names));
+    ctx->type_drop = GTK_DROP_DOWN(gtk_drop_down_new_from_strings(map_type_edit_names));
     gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(ctx->type_drop), 1, 3, 1, 1);
-    gtk_drop_down_set_selected(ctx->type_drop, MAP_DIRECT_BYTE);
+    gtk_drop_down_set_selected(ctx->type_drop, map_edit_index_from_type(MAP_ROM));
     g_signal_connect(ctx->type_drop, "notify::selected",
                      G_CALLBACK(on_segment_type_changed), ctx);
 
@@ -973,6 +1218,14 @@ static void open_segment_dialog(MapPanelCtx *pctx, int start_offset, int end_off
     ctx->prefill_start = start_offset;
     ctx->prefill_end = end_offset;
     ctx->have_prefill = (start_offset >= 0 && end_offset >= 0);
+    if (!ctx->have_prefill && pctx && pctx->project) {
+        int span_start = 0, span_end = 0;
+        if (map_project_span_bounds_for_project(pctx->project, &span_start, &span_end)) {
+            ctx->prefill_start = span_start;
+            ctx->prefill_end = span_end;
+            ctx->have_prefill = TRUE;
+        }
+    }
     if (name && name[0]) {
         strncpy(ctx->prefill_name, name, sizeof(ctx->prefill_name) - 1);
         ctx->have_name = TRUE;
@@ -997,12 +1250,15 @@ static void open_segment_dialog(MapPanelCtx *pctx, int start_offset, int end_off
 
 static void on_map_edit_clicked(GtkButton *btn, gpointer ud) {
     MapPanelCtx *pctx = ud;
+    if (pctx && pctx->project)
+        map_ensure_default_rom_segment(pctx->project);
     if (pctx && pctx->panels_root)
         clear_panel_selection_except(pctx->panels_root, NULL);
-    open_segment_dialog(pctx, -1, -1, NULL, TRUE, MAP_DIRECT_BYTE);
+    open_segment_dialog(pctx, -1, -1, "ROM", TRUE, MAP_ROM);
 }
 
 static GtkWidget *ui_memmap_panel_new(Project *p, GtkWidget *window) {
+    map_ensure_default_rom_segment(p);
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
     gtk_widget_set_margin_start(box, 10); gtk_widget_set_margin_end(box, 10);
 
@@ -1026,6 +1282,7 @@ static GtkWidget *ui_memmap_panel_new(Project *p, GtkWidget *window) {
     g_signal_connect(map_focus, "leave",
                      G_CALLBACK(on_list_focus_leave), list);
     ctx->panel_list = list;
+    g_object_set_data(G_OBJECT(list), "map-panel-ctx", ctx);
     GtkGesture *map_click = gtk_gesture_click_new();
     gtk_widget_add_controller(list, GTK_EVENT_CONTROLLER(map_click));
     g_signal_connect(map_click, "pressed",
@@ -1038,7 +1295,7 @@ static GtkWidget *ui_memmap_panel_new(Project *p, GtkWidget *window) {
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), list);
     gtk_box_append(GTK_BOX(box), sw);
 
-    map_list_populate(list, p);
+    map_list_populate(ctx);
     g_object_set_data_full(G_OBJECT(box), "map-ctx", ctx, (GDestroyNotify)g_free);
     return box;
 }

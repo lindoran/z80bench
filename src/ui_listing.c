@@ -516,16 +516,17 @@ gboolean ui_listing_select_address(GtkWidget *outer, int addr) {
  * ========================================================================== */
 
 typedef struct {
+    Project *project;
     GtkWidget *list_box;
     GtkWidget *scrolled;
     GtkWidget *panels;
-    GtkWidget *search_revealer;
-    GtkWidget *search_entry;
-    GtkWidget *mode_addr_btn;
-    GtkWidget *mode_mnem_btn;
-    GtkWidget *mode_comm_btn;
     int        selected_row;
     gulong     panels_destroy_handler;
+    UIListingVisibleAddrFn visible_addr_cb;
+    gpointer               visible_addr_data;
+    UIListingFocusSearchFn focus_search_cb;
+    gpointer               focus_search_data;
+    int                    last_visible_addr;
 } ListingCtx;
 
 static void listing_ctx_free(gpointer p) { g_free(p); }
@@ -565,18 +566,39 @@ static void on_row_selected(GtkListBox *lb, GtkListBoxRow *row, gpointer ud) {
     ctx->selected_row = gtk_list_box_row_get_index(row);
 }
 
+static void listing_emit_visible_addr(ListingCtx *ctx) {
+    if (!ctx || !ctx->visible_addr_cb || !ctx->project || !ctx->scrolled || !ctx->list_box)
+        return;
+    GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(ctx->scrolled));
+    if (!vadj) return;
+
+    int y = (int)gtk_adjustment_get_value(vadj);
+    GtkListBoxRow *row = gtk_list_box_get_row_at_y(GTK_LIST_BOX(ctx->list_box), y);
+    if (!row)
+        row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(ctx->list_box), 0);
+    if (!row) return;
+
+    int line_index = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "line-index"));
+    if (line_index < 0 || line_index >= ctx->project->nlines)
+        return;
+    int addr = ctx->project->lines[line_index].addr;
+    if (addr == ctx->last_visible_addr)
+        return;
+    ctx->last_visible_addr = addr;
+    ctx->visible_addr_cb(ctx->visible_addr_data, addr);
+}
+
+static void on_listing_scroll_value_changed(GtkAdjustment *adj, gpointer ud) {
+    (void)adj;
+    listing_emit_visible_addr((ListingCtx *)ud);
+}
+
 /* ==========================================================================
  * Search
  * ========================================================================== */
 
-static void do_search(ListingCtx *ctx) {
-    const char *text = gtk_editable_get_text(GTK_EDITABLE(ctx->search_entry));
-    if (!text || !text[0]) return;
-
-    guint mode = 0;
-    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ctx->mode_mnem_btn))) mode = 1;
-    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ctx->mode_comm_btn))) mode = 2;
-
+static gboolean do_search_text(ListingCtx *ctx, const char *text, UISearchMode mode) {
+    if (!ctx || !text || !text[0]) return FALSE;
     int start = ctx->selected_row;
     int idx   = start + 1;
 
@@ -593,29 +615,27 @@ static void do_search(ListingCtx *ctx) {
         if (rd) {
             DisasmLine *dl = &rd->project->lines[rd->line_index];
             gboolean match = FALSE;
-            if      (mode == 0) { int a = (int)strtol(text, NULL, 16); match = (dl->addr == a); }
-            else if (mode == 1) { match = (g_ascii_strcasecmp(dl->mnemonic, text) == 0); }
-            else                { match = (dl->comment[0] && strstr(dl->comment, text)) ||
-                                          (dl->block[0]   && strstr(dl->block,   text)); }
+            if      (mode == UI_SEARCH_ADDR) {
+                int a = (int)strtol(text, NULL, 0);
+                match = (dl->addr == a);
+            } else if (mode == UI_SEARCH_MNEM) {
+                match = (g_ascii_strcasecmp(dl->mnemonic, text) == 0);
+            } else {
+                match = (dl->comment[0] && strstr(dl->comment, text)) ||
+                        (dl->block[0]   && strstr(dl->block,   text));
+            }
             if (match) {
                 gtk_list_box_select_row(GTK_LIST_BOX(ctx->list_box), row);
                 gtk_widget_grab_focus(GTK_WIDGET(row));
                 ctx->selected_row = idx;
-                return;
+                return TRUE;
             }
         }
         idx++;
         if (start >= 0 && idx > start) break;
         if (start <  0 && idx > 50000) break;
     }
-}
-
-static void on_search_activate(GtkEntry *e, gpointer ud)  { do_search(ud); }
-static void on_search_next(GtkButton *b, gpointer ud)     { do_search(ud); }
-static void on_search_close(GtkButton *b, gpointer ud) {
-    ListingCtx *ctx = ud;
-    gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->search_revealer), FALSE);
-    ctx->selected_row = -1;
+    return FALSE;
 }
 
 static void on_listing_click_pressed(GtkGestureClick *gesture, int n_press,
@@ -634,14 +654,8 @@ static gboolean on_key_pressed(GtkEventControllerKey *c, guint kv,
     (void)kc;
     ListingCtx *ctx = ud;
     if ((kv == GDK_KEY_s || kv == GDK_KEY_S) && (st & GDK_CONTROL_MASK)) {
-        gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->search_revealer), TRUE);
-        gtk_widget_grab_focus(ctx->search_entry);
-        return TRUE;
-    }
-    if (kv == GDK_KEY_Escape &&
-        gtk_revealer_get_reveal_child(GTK_REVEALER(ctx->search_revealer))) {
-        gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->search_revealer), FALSE);
-        ctx->selected_row = -1;
+        if (ctx->focus_search_cb)
+            ctx->focus_search_cb(ctx->focus_search_data);
         return TRUE;
     }
     if (kv == GDK_KEY_Escape) {
@@ -663,6 +677,31 @@ void ui_listing_set_panels(GtkWidget *outer, GtkWidget *panels) {
     bind_panels(ctx, panels);
 }
 
+void ui_listing_set_visible_addr_cb(GtkWidget *outer,
+                                    UIListingVisibleAddrFn cb,
+                                    gpointer data) {
+    ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
+    if (!ctx) return;
+    ctx->visible_addr_cb = cb;
+    ctx->visible_addr_data = data;
+    listing_emit_visible_addr(ctx);
+}
+
+void ui_listing_set_search_focus_cb(GtkWidget *outer,
+                                    UIListingFocusSearchFn cb,
+                                    gpointer data) {
+    ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
+    if (!ctx) return;
+    ctx->focus_search_cb = cb;
+    ctx->focus_search_data = data;
+}
+
+gboolean ui_listing_search_next(GtkWidget *outer, const char *text, UISearchMode mode) {
+    ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
+    if (!ctx) return FALSE;
+    return do_search_text(ctx, text, mode);
+}
+
 /* ==========================================================================
  * Public API
  * ========================================================================== */
@@ -670,40 +709,6 @@ void ui_listing_set_panels(GtkWidget *outer, GtkWidget *panels) {
 GtkWidget *ui_listing_new(Project *p, GtkWidget *panels) {
     GtkWidget *outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_vexpand(outer, TRUE);
-
-    /* Search bar */
-    GtkWidget *revealer = gtk_revealer_new();
-    gtk_revealer_set_transition_type(GTK_REVEALER(revealer),
-                                     GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(revealer), FALSE);
-
-    GtkWidget *sbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-    gtk_widget_set_margin_start(sbar, 8); gtk_widget_set_margin_end(sbar, 8);
-    gtk_widget_set_margin_top(sbar, 4);   gtk_widget_set_margin_bottom(sbar, 4);
-
-    GtkWidget *mode_addr = gtk_toggle_button_new_with_label("Addr");
-    GtkWidget *mode_mnem = gtk_toggle_button_new_with_label("Mnem");
-    GtkWidget *mode_comm = gtk_toggle_button_new_with_label("Comment");
-    gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(mode_mnem), GTK_TOGGLE_BUTTON(mode_addr));
-    gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(mode_comm), GTK_TOGGLE_BUTTON(mode_addr));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mode_addr), TRUE);
-    gtk_box_append(GTK_BOX(sbar), mode_addr);
-    gtk_box_append(GTK_BOX(sbar), mode_mnem);
-    gtk_box_append(GTK_BOX(sbar), mode_comm);
-
-    GtkWidget *entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "Search…");
-    gtk_widget_set_hexpand(entry, TRUE);
-    gtk_box_append(GTK_BOX(sbar), entry);
-
-    GtkWidget *next_btn  = gtk_button_new_with_label("Find Next");
-    GtkWidget *close_btn = gtk_button_new_with_label("✕");
-    gtk_widget_add_css_class(close_btn, "flat");
-    gtk_box_append(GTK_BOX(sbar), next_btn);
-    gtk_box_append(GTK_BOX(sbar), close_btn);
-
-    gtk_revealer_set_child(GTK_REVEALER(revealer), sbar);
-    gtk_box_append(GTK_BOX(outer), revealer);
 
     /* List box */
     GtkWidget *list_box = gtk_list_box_new();
@@ -734,23 +739,20 @@ GtkWidget *ui_listing_new(Project *p, GtkWidget *panels) {
     g_object_set_data(G_OBJECT(outer), "list-scrolled", scrolled);
 
     ListingCtx *ctx      = g_new0(ListingCtx, 1);
+    ctx->project         = p;
     ctx->list_box        = list_box;
+    ctx->scrolled        = scrolled;
     ctx->panels          = panels;
-    ctx->search_revealer = revealer;
-    ctx->search_entry    = entry;
-    ctx->mode_addr_btn   = mode_addr;
-    ctx->mode_mnem_btn   = mode_mnem;
-    ctx->mode_comm_btn   = mode_comm;
     ctx->selected_row    = -1;
     ctx->panels_destroy_handler = 0;
+    ctx->last_visible_addr = -1;
 
     g_object_set_data_full(G_OBJECT(outer), "listing-ctx", ctx, listing_ctx_free);
 
     bind_panels(ctx, panels);
     g_signal_connect(list_box,  "row-selected", G_CALLBACK(on_row_selected),     ctx);
-    g_signal_connect(entry,     "activate",     G_CALLBACK(on_search_activate),  ctx);
-    g_signal_connect(next_btn,  "clicked",      G_CALLBACK(on_search_next),      ctx);
-    g_signal_connect(close_btn, "clicked",      G_CALLBACK(on_search_close),     ctx);
+    GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
+    g_signal_connect(vadj, "value-changed", G_CALLBACK(on_listing_scroll_value_changed), ctx);
 
     GtkEventController *key = gtk_event_controller_key_new();
     gtk_event_controller_set_propagation_phase(key, GTK_PHASE_CAPTURE);
