@@ -24,17 +24,45 @@
  * wrapped line is shown on its own display line prefixed with "; ".
  */
 
-#define COL_MNEM 23
-#define COL_OPS  29
-#define COL_CMT  45
+#define COL_MNEM 21
+#define COL_LABEL 21
+#define COL_OPS  27
+#define COL_CMT  43
 #define COL_MAX  79
 #define CMT_MAX  (COL_MAX - COL_CMT - 2)   /* 32 chars after "; " */
-#define BLOCK_WRAP 77                        /* 79 - 2 for "; " */
+#define BLOCK_WRAP (COL_MAX - COL_MNEM - 2) /* wrap relative to label col */
 
 /* Row type tags */
 #define ROW_TYPE_MAIN  0
 #define ROW_TYPE_BLOCK 1
 #define ROW_TYPE_LABEL 2
+
+static void scroll_row_visible(GtkWidget *list_box, GtkWidget *scrolled, GtkListBoxRow *row) {
+    if (!list_box || !scrolled || !row) return;
+
+    GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
+    if (!vadj) return;
+
+    graphene_rect_t bounds;
+    if (!gtk_widget_compute_bounds(GTK_WIDGET(row), GTK_WIDGET(list_box), &bounds))
+        return;
+
+    double top = bounds.origin.y;
+    double bottom = top + bounds.size.height;
+    double value = gtk_adjustment_get_value(vadj);
+    double page = gtk_adjustment_get_page_size(vadj);
+    double lower = gtk_adjustment_get_lower(vadj);
+    double upper = gtk_adjustment_get_upper(vadj);
+
+    if (top < value || bottom > value + page) {
+        double target = top - (page * 0.30);
+        double max_value = upper - page;
+        if (max_value < lower) max_value = lower;
+        if (target < lower) target = lower;
+        if (target > max_value) target = max_value;
+        gtk_adjustment_set_value(vadj, target);
+    }
+}
 
 typedef struct {
     int      line_index;
@@ -137,16 +165,17 @@ static GString *format_block(const char *text, int indent) {
  * ========================================================================== */
 
 static GtkWidget *build_block_content(DisasmLine *dl) {
-    GString *formatted = format_block(dl->block[0] ? dl->block : "", COL_MNEM - 1);
+    GString *formatted = format_block(dl->block[0] ? dl->block : "", COL_MNEM);
     char *escaped = g_markup_escape_text(formatted->str, -1);
     g_string_free(formatted, TRUE);
 
     /* Indent is baked into every line by format_block — no %*s prefix needed */
     char *markup = g_strdup_printf(
-        "<span face='monospace' color='#639922'><i>%s</i></span>", escaped);
+        "<span font_family='Monospace' color='#639922'><i>%s</i></span>", escaped);
     g_free(escaped);
 
     GtkWidget *lbl = gtk_label_new(NULL);
+    gtk_widget_add_css_class(lbl, "monospace");
     gtk_label_set_markup(GTK_LABEL(lbl), markup);
     g_free(markup);
     gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
@@ -157,11 +186,12 @@ static GtkWidget *build_block_content(DisasmLine *dl) {
 static GtkWidget *build_label_content(DisasmLine *dl) {
     char *escaped = g_markup_escape_text(dl->label, -1);
     char *markup = g_strdup_printf(
-        "<span face='monospace'><span color='#EF9F27'>%*s%s:</span></span>",
+        "<span font_family='Monospace'><span color='#EF9F27'>%*s%s:</span></span>",
         COL_MNEM, "", escaped);
     g_free(escaped);
 
     GtkWidget *lbl = gtk_label_new(NULL);
+    gtk_widget_add_css_class(lbl, "monospace");
     gtk_label_set_markup(GTK_LABEL(lbl), markup);
     g_free(markup);
     gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
@@ -211,7 +241,7 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
     /* Data colour — dim amber for data directives */
     const char *data_col = "#A0804A";
 
-    GString *markup = g_string_new("<span face='monospace'>");
+    GString *markup = g_string_new("<span font_family='Monospace'>");
 
     /* Helper: emit one row of up to 4 bytes (bytes col + ascii col) */
     /* Returns number of bytes emitted */
@@ -224,15 +254,15 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
 
     /* First row */
     {
-        /* Bytes */
-        char bytes_str[16] = "";
+        /* Bytes — compact, no spaces: "C37400  " padded to 9 chars */
+        char bytes_str[12] = "";
         int row_count = total < 4 ? total : 4;
         for (int b = 0; b < row_count; b++) {
-            char tmp[4]; sprintf(tmp, "%02X ", rom_ptr[b]); strcat(bytes_str, tmp);
+            char tmp[3]; sprintf(tmp, "%02X", rom_ptr[b]); strcat(bytes_str, tmp);
         }
         int blen = strlen(bytes_str);
-        while (blen < 12) bytes_str[blen++] = ' ';
-        bytes_str[12] = '\0';
+        while (blen < 9) bytes_str[blen++] = ' ';
+        bytes_str[9] = '\0';
 
         /* ASCII */
         char ascii_str[6] = "     ";
@@ -292,14 +322,15 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
             int row_count = total - base;
             if (row_count > 4) row_count = 4;
 
-            char bytes_str[16] = "";
+            /* Bytes compact */
+            char bytes_str[12] = "";
             for (int b = 0; b < row_count; b++) {
-                char tmp[4]; sprintf(tmp, "%02X ", rom_ptr[base + b]);
+                char tmp[3]; sprintf(tmp, "%02X", rom_ptr[base + b]);
                 strcat(bytes_str, tmp);
             }
             int blen = strlen(bytes_str);
-            while (blen < 12) bytes_str[blen++] = ' ';
-            bytes_str[12] = '\0';
+            while (blen < 9) bytes_str[blen++] = ' ';
+            bytes_str[9] = '\0';
 
             char ascii_str[6] = "     ";
             for (int b = 0; b < row_count; b++) {
@@ -324,6 +355,7 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
     g_free(addr_esc); g_free(mnem_esc); g_free(ops_esc); g_free(cmt_esc);
 
     GtkWidget *lbl = gtk_label_new(NULL);
+    gtk_widget_add_css_class(lbl, "monospace");
     gtk_label_set_markup(GTK_LABEL(lbl), markup->str);
     g_string_free(markup, TRUE);
     gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
@@ -479,36 +511,10 @@ gboolean ui_listing_select_address(GtkWidget *outer, int addr) {
     gtk_list_box_select_row(GTK_LIST_BOX(list_box), best);
     gtk_widget_grab_focus(GTK_WIDGET(best));
 
-    if (!scrolled) return TRUE;
+    if (scrolled)
+        scroll_row_visible(list_box, scrolled, best);
 
-    GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
-    graphene_rect_t bounds;
-    if (!vadj) return FALSE;
-    if (!gtk_widget_get_realized(scrolled)) return FALSE;
-    if (!gtk_widget_compute_bounds(GTK_WIDGET(best), GTK_WIDGET(list_box), &bounds))
-        return FALSE;
-
-    double top = bounds.origin.y;
-    double bottom = top + bounds.size.height;
-    double value = gtk_adjustment_get_value(vadj);
-    double page = gtk_adjustment_get_page_size(vadj);
-    double lower = gtk_adjustment_get_lower(vadj);
-    double upper = gtk_adjustment_get_upper(vadj);
-    if (page <= 0.0 || bounds.size.height <= 0.0)
-        return FALSE;
-
-    /* Keep selected row comfortably visible and avoid "selected but off-screen". */
-    if (top < value || bottom > value + page) {
-        double target = top - (page * 0.30);
-        double max_value = upper - page;
-        if (max_value < lower) max_value = lower;
-        if (target < lower) target = lower;
-        if (target > max_value) target = max_value;
-        gtk_adjustment_set_value(vadj, target);
-    }
-
-    value = gtk_adjustment_get_value(vadj);
-    return (top >= value && bottom <= value + page);
+    return TRUE;
 }
 
 /* ==========================================================================
@@ -597,20 +603,28 @@ static void on_listing_scroll_value_changed(GtkAdjustment *adj, gpointer ud) {
  * Search
  * ========================================================================== */
 
-static gboolean do_search_text(ListingCtx *ctx, const char *text, UISearchMode mode) {
+static gboolean do_search_text(GtkWidget *outer, ListingCtx *ctx, const char *text, UISearchMode mode) {
     if (!ctx || !text || !text[0]) return FALSE;
     int start = ctx->selected_row;
-    int idx   = start + 1;
+    int idx   = (start < 0) ? 0 : start + 1;
+    gboolean wrapped = FALSE;
 
     while (TRUE) {
         GtkListBoxRow *row = gtk_list_box_get_row_at_index(
             GTK_LIST_BOX(ctx->list_box), idx);
+
         if (!row) {
-            if (idx == 0) break;
+            if (wrapped) break;
             idx = 0;
-            row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(ctx->list_box), 0);
-            if (!row) break;
+            wrapped = TRUE;
+            continue;
         }
+
+        if (wrapped) {
+            if (start >= 0 && idx > start) break;
+            if (start < 0) break;
+        }
+
         RowData *rd = g_object_get_data(G_OBJECT(row), "rd");
         if (rd) {
             DisasmLine *dl = &rd->project->lines[rd->line_index];
@@ -621,19 +635,28 @@ static gboolean do_search_text(ListingCtx *ctx, const char *text, UISearchMode m
             } else if (mode == UI_SEARCH_MNEM) {
                 match = (g_ascii_strcasecmp(dl->mnemonic, text) == 0);
             } else {
-                match = (dl->comment[0] && strstr(dl->comment, text)) ||
-                        (dl->block[0]   && strstr(dl->block,   text));
+                /* Case-insensitive substring search for comments and blocks */
+                char *needle = g_ascii_strdown(text, -1);
+                char *haystack_c = dl->comment[0] ? g_ascii_strdown(dl->comment, -1) : NULL;
+                char *haystack_b = dl->block[0] ? g_ascii_strdown(dl->block, -1) : NULL;
+
+                if ((haystack_c && strstr(haystack_c, needle)) ||
+                    (haystack_b && strstr(haystack_b, needle))) {
+                    match = TRUE;
+                }
+                g_free(needle);
+                g_free(haystack_c);
+                g_free(haystack_b);
             }
             if (match) {
                 gtk_list_box_select_row(GTK_LIST_BOX(ctx->list_box), row);
                 gtk_widget_grab_focus(GTK_WIDGET(row));
+                scroll_row_visible(ctx->list_box, ctx->scrolled, row);
                 ctx->selected_row = idx;
                 return TRUE;
             }
         }
         idx++;
-        if (start >= 0 && idx > start) break;
-        if (start <  0 && idx > 50000) break;
     }
     return FALSE;
 }
@@ -699,7 +722,7 @@ void ui_listing_set_search_focus_cb(GtkWidget *outer,
 gboolean ui_listing_search_next(GtkWidget *outer, const char *text, UISearchMode mode) {
     ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
     if (!ctx) return FALSE;
-    return do_search_text(ctx, text, mode);
+    return do_search_text(outer, ctx, text, mode);
 }
 
 /* ==========================================================================

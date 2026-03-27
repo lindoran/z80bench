@@ -420,11 +420,12 @@ static void map_list_append_entry_row(GtkWidget *list, const MapEntry *e, int en
     gtk_widget_set_margin_bottom(rb, 2);
 
     GtkWidget *nl = gtk_label_new(NULL);
+    gtk_widget_add_css_class(nl, "monospace");
     char name_text[DISASM_LABEL_MAX + 4];
     if (is_child) snprintf(name_text, sizeof(name_text), "%s", e->name);
     else snprintf(name_text, sizeof(name_text), "- %s", e->name);
     char *m = g_markup_printf_escaped(
-        "<span color='%s' face='monospace'>%s</span>",
+        "<span color='%s' font_family='Monospace'>%s</span>",
         map_type_colour(e->type), name_text);
     gtk_label_set_markup(GTK_LABEL(nl), m);
     g_free(m);
@@ -438,8 +439,9 @@ static void map_list_append_entry_row(GtkWidget *list, const MapEntry *e, int en
     char range[24];
     snprintf(range, sizeof(range), "%04X-%04X", e->start, e->end);
     GtkWidget *rl = gtk_label_new(NULL);
+    gtk_widget_add_css_class(rl, "monospace");
     char *rm = g_markup_printf_escaped(
-        "<span color='#888' face='monospace'>%s</span>", range);
+        "<span color='#888' font_family='Monospace'>%s</span>", range);
     gtk_label_set_markup(GTK_LABEL(rl), rm);
     g_free(rm);
     gtk_box_append(GTK_BOX(rb), rl);
@@ -478,7 +480,8 @@ static void map_dialog_append_entry_row(MapEditCtx *ctx, const MapEntry *e,
     snprintf(text, sizeof(text), "%-20s  %04X-%04X  %s",
              name_text, e->start, e->end, map_type_name(e->type));
     GtkWidget *lbl = gtk_label_new(NULL);
-    char *m = g_markup_printf_escaped("<span face='monospace'>%s</span>", text);
+    gtk_widget_add_css_class(lbl, "monospace");
+    char *m = g_markup_printf_escaped("<span font_family='Monospace'>%s</span>", text);
     gtk_label_set_markup(GTK_LABEL(lbl), m);
     g_free(m);
     gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
@@ -1385,8 +1388,9 @@ static void sym_list_populate(GtkWidget *list, Project *p, const char *filter) {
         gtk_widget_set_margin_top(rb, 2);   gtk_widget_set_margin_bottom(rb, 2);
 
         GtkWidget *nl = gtk_label_new(NULL);
+        gtk_widget_add_css_class(nl, "monospace");
         char *nm = g_markup_printf_escaped(
-            "<span color='%s' face='monospace'>%s</span>",
+            "<span color='%s' font_family='Monospace'>%s</span>",
             sym_type_colour(s->type), s->name);
         gtk_label_set_markup(GTK_LABEL(nl), nm); g_free(nm);
         gtk_label_set_xalign(GTK_LABEL(nl), 0.0);
@@ -1397,8 +1401,9 @@ static void sym_list_populate(GtkWidget *list, Project *p, const char *filter) {
         gtk_box_append(GTK_BOX(rb), nl);
 
         GtkWidget *al = gtk_label_new(NULL);
+        gtk_widget_add_css_class(al, "monospace");
         char *am = g_markup_printf_escaped(
-            "<span color='#888' face='monospace'>%04X</span>", s->addr);
+            "<span color='#888' font_family='Monospace'>%04X</span>", s->addr);
         gtk_label_set_markup(GTK_LABEL(al), am); g_free(am);
         gtk_box_append(GTK_BOX(rb), al);
 
@@ -1445,7 +1450,8 @@ static void sym_dialog_populate(SymEditCtx *ctx) {
         snprintf(text, sizeof(text), "%-16s  %04X  %s",
                  s->name, s->addr, sym_type_names[s->type]);
         GtkWidget *lbl = gtk_label_new(NULL);
-        char *m = g_markup_printf_escaped("<span face='monospace'>%s</span>", text);
+        gtk_widget_add_css_class(lbl, "monospace");
+        char *m = g_markup_printf_escaped("<span font_family='Monospace'>%s</span>", text);
         gtk_label_set_markup(GTK_LABEL(lbl), m); g_free(m);
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
         gtk_widget_set_margin_start(lbl, 6);
@@ -1900,6 +1906,7 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Label"),   0, 0, 1, 1);
     ap->label_entry = gtk_entry_new();
+    gtk_widget_add_css_class(ap->label_entry, "monospace");
     gtk_widget_set_hexpand(ap->label_entry, TRUE);
     gtk_grid_attach(GTK_GRID(grid), ap->label_entry, 1, 0, 1, 1);
     g_signal_connect(ap->label_entry, "changed",
@@ -1908,6 +1915,7 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Comment"), 0, 1, 1, 1);
     ap->comment_entry = gtk_entry_new();
+    gtk_widget_add_css_class(ap->comment_entry, "monospace");
     gtk_grid_attach(GTK_GRID(grid), ap->comment_entry, 1, 1, 1, 1);
     g_signal_connect(ap->comment_entry, "changed",
                      G_CALLBACK(on_comment_changed), ap);
@@ -1917,6 +1925,8 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
     GtkWidget *s = gtk_scrolled_window_new();
     gtk_widget_set_size_request(s, -1, 80);
     ap->block_view = gtk_text_view_new();
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(ap->block_view), TRUE);
+    gtk_widget_add_css_class(ap->block_view, "monospace");
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(ap->block_view), GTK_WRAP_WORD_CHAR);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(s), ap->block_view);
     gtk_grid_attach(GTK_GRID(grid), s, 1, 2, 1, 1);
@@ -1926,6 +1936,7 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Xref"),    0, 3, 1, 1);
     ap->xref_entry = gtk_entry_new();
+    gtk_widget_add_css_class(ap->xref_entry, "monospace");
     gtk_grid_attach(GTK_GRID(grid), ap->xref_entry, 1, 3, 1, 1);
     g_signal_connect(ap->xref_entry, "changed",
                      G_CALLBACK(on_xref_changed), ap);

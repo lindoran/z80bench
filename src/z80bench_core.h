@@ -22,7 +22,7 @@
 #define DISASM_MNEMONIC_MAX   16
 #define DISASM_OPERANDS_MAX   64
 #define DISASM_LABEL_MAX      64
-#define DISASM_COMMENT_MAX   256
+#define DISASM_COMMENT_MAX   1024
 #define DISASM_XREF_MAX      256
 #define DISASM_BYTES_MAX       4    /* max Z80 instruction length */
 

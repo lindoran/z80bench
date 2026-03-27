@@ -1,0 +1,2940 @@
+; z80bench export — monz80_z88dk
+; format: addr bytes mnemonic operands ; comment
+
+; ************************************
+BLOCK COMMENTS!! 
+Multiple Lines 
+
+EVEN IN A BOX 
+************************************
+; ---- RESET_00 ------------------------------------------------
+0000  C3 74 00       jp    00074h               ; RESET LEVEL 0
+0003  FF             rst   38h                 
+0004  FF             rst   38h                 
+0005  FF             rst   38h                 
+0006  FF             rst   38h                 
+0007  FF             rst   38h                 
+; ---- RESET_08 ------------------------------------------------
+0008  C3 68 78       jp    07868h               ; RESET LEVEL 8
+000B  FF             rst   38h                 
+000C  FF             rst   38h                 
+000D  FF             rst   38h                 
+000E  FF             rst   38h                 
+000F  FF             rst   38h                 
+0010  C3 70 78       jp    07870h              
+0013  FF             rst   38h                 
+0014  FF             rst   38h                 
+0015  FF             rst   38h                 
+0016  FF             rst   38h                 
+0017  FF             rst   38h                 
+0018  C3 78 78       jp    07878h              
+001B  FF             rst   38h                 
+001C  FF             rst   38h                 
+001D  FF             rst   38h                 
+001E  FF             rst   38h                 
+001F  FF             rst   38h                 
+0020  C3 80 78       jp    07880h              
+0023  FF             rst   38h                 
+0024  FF             rst   38h                 
+0025  FF             rst   38h                 
+0026  FF             rst   38h                 
+0027  FF             rst   38h                 
+0028  C3 88 78       jp    07888h              
+002B  FF             rst   38h                 
+002C  FF             rst   38h                 
+002D  FF             rst   38h                 
+002E  FF             rst   38h                 
+002F  FF             rst   38h                 
+0030  C3 90 78       jp    07890h              
+0033  FF             rst   38h                 
+0034  FF             rst   38h                 
+0035  FF             rst   38h                 
+0036  FF             rst   38h                 
+0037  FF             rst   38h                 
+0038  22 06 78       ld    (07806h),hl         
+003B  E1             pop   hl                  
+003C  2B             dec   hl                  
+003D  22 0C 78       ld    (0780ch),hl         
+0040  F5             push  af                  
+0041  E1             pop   hl                  
+0042  22 00 78       ld    (07800h),hl         
+0045  21 00 00       ld    hl,00000h           
+0048  39             add   hl,sp               
+0049  22 0E 78       ld    (0780eh),hl         
+004C  EB             ex    de,hl               
+004D  22 04 78       ld    (07804h),hl         
+0050  60             ld    h,b                 
+0051  69             ld    l,c                 
+0052  22 02 78       ld    (07802h),hl         
+0055  DD 22 08 78    ld    (07808h),ix         
+0059  FD 22 0A 78    ld    (0780ah),iy         
+005D  21 11 78       ld    hl,07811h           
+0060  06 08          ld    b,008h              
+0062  5E             ld    e,(hl)              
+0063  23             inc   hl                  
+0064  56             ld    d,(hl)              
+0065  23             inc   hl                  
+0066  7A             ld    a,d                 
+0067  B5             or    l                   
+0068  28 02          jr    z,$+4               
+006A  7E             ld    a,(hl)              
+006B  12             ld    (de),a              
+006C  23             inc   hl                  
+006D  10 F3          djnz  $-11                
+006F  CD 8F 02       call  0028fh              
+0072  18 73          jr    $+117               
+0074  31 5F 78       ld    sp,0785fh           
+0077  CD 96 0F       call  00f96h              
+007A  21 00 78       ld    hl,07800h           
+007D  11 29 78       ld    de,07829h           
+0080  36 00          ld    (hl),000h           
+0082  CD 55 02       call  00255h              
+0085  23             inc   hl                  
+0086  38 F8          jr    c,$-6               
+0088  CD 0B 05       call  0050bh              
+008B  0A 0D          DEFB  $0A,$0D             
+008D  4D             ld    c,l                 
+008E  4F             ld    c,a                 
+008F  4E             ld    c,(hl)              
+0090  5A             ld    e,d                 
+0091  38 30          jr    c,$+50              
+0093  20 56          jr    nz,$+88             
+0095  65             ld    h,l                 
+0096  72             ld    (hl),d              
+0097  73             ld    (hl),e              
+0098  69             ld    l,c                 
+0099  6F             ld    l,a                 
+009A  6E             ld    l,(hl)              
+009B  20 31          jr    nz,$+51             
+009D  2E 30          ld    l,030h              
+009F  0A             ld    a,(bc)              
+00A0  0D             dec   c                   
+00A1  0A             ld    a,(bc)              
+00A2  3F             ccf                       
+00A3  43             ld    b,e                 
+00A4  4F             ld    c,a                 
+00A5  50             ld    d,b                 
+00A6  59             ld    e,c                 
+00A7  2E 54          ld    l,054h              
+00A9  58             ld    e,b                 
+00AA  54             ld    d,h                 
+00AB  20 31          jr    nz,$+51             
+00AD  39             add   hl,sp               
+00AE  39             add   hl,sp               
+00AF  36 2D          ld    (hl),02dh           
+00B1  32 30 30       ld    (03030h),a          
+00B4  37             scf                       
+00B5  20 44          jr    nz,$+70             
+00B7  61             ld    h,c                 
+00B8  76             halt                      
+00B9  65             ld    h,l                 
+00BA  20 44          jr    nz,$+70             
+00BC  75             ld    (hl),l              
+00BD  6E             ld    l,(hl)              
+00BE  66             ld    h,(hl)              
+00BF  69             ld    l,c                 
+00C0  65             ld    h,l                 
+00C1  6C             ld    l,h                 
+00C2  64             ld    h,h                 
+00C3  0A             ld    a,(bc)              
+00C4  0D             dec   c                   
+00C5  20 2D          jr    nz,$+47             
+00C7  2D             dec   l                   
+00C8  20 73          jr    nz,$+117            
+00CA  65             ld    h,l                 
+00CB  65             ld    h,l                 
+00CC  20 43          jr    nz,$+69             
+00CE  4F             ld    c,a                 
+00CF  50             ld    d,b                 
+00D0  59             ld    e,c                 
+00D1  2E 54          ld    l,054h              
+00D3  58             ld    e,b                 
+00D4  54             ld    d,h                 
+00D5  20 2D          jr    nz,$+47             
+00D7  2D             dec   l                   
+00D8  2E 0A          ld    l,00ah              
+00DA  00             nop                       
+00DB  21 60 78       ld    hl,07860h           
+00DE  22 0C 78       ld    (0780ch),hl         
+00E1  21 FF FF       ld    hl,0ffffh           
+00E4  22 0E 78       ld    (0780eh),hl         
+00E7  31 5F 78       ld    sp,0785fh           
+00EA  3E 60          ld    a,060h              
+00EC  32 10 78       ld    (07810h),a          
+00EF  CD 0B 05       call  0050bh              
+00F2  0A             ld    a,(bc)              
+00F3  0D             dec   c                   
+00F4  3E 00          ld    a,000h              
+00F6  0E 00          ld    c,000h              
+00F8  51             ld    d,c                 
+00F9  41             ld    b,c                 
+00FA  CD 62 04       call  00462h              
+00FD  4F             ld    c,a                 
+00FE  21 46 01       ld    hl,00146h           
+0101  79             ld    a,c                 
+0102  BE             cp    (hl)                
+0103  23             inc   hl                  
+0104  20 11          jr    nz,$+19             
+0106  78             ld    a,b                 
+0107  BE             cp    (hl)                
+0108  20 0D          jr    nz,$+15             
+010A  23             inc   hl                  
+010B  CD 06 05       call  00506h              
+010E  7E             ld    a,(hl)              
+010F  23             inc   hl                  
+0110  66             ld    h,(hl)              
+0111  6F             ld    l,a                 
+0112  01 2F 01       ld    bc,0012fh           
+0115  C5             push  bc                  
+0116  E9             jp    (hl)                
+0117  79             ld    a,c                 
+0118  BE             cp    (hl)                
+0119  20 01          jr    nz,$+3              
+011B  14             inc   d                   
+011C  23             inc   hl                  
+011D  23             inc   hl                  
+011E  23             inc   hl                  
+011F  7E             ld    a,(hl)              
+0120  A7             and   a                   
+0121  20 DE          jr    nz,$-32             
+0123  B0             or    b                   
+0124  20 03          jr    nz,$+5              
+0126  B2             or    d                   
+0127  20 D0          jr    nz,$-46             
+0129  CD 0B 05       call  0050bh              
+012C  20 3F          jr    nz,$+65             
+012E  00             nop                       
+012F  3A 10 78       ld    a,(07810h)          
+0132  E6 10          and   010h                
+0134  28 B1          jr    z,$-77              
+0136  01 00 00       ld    bc,00000h           
+0139  CD A5 0F       call  00fa5h              
+013C  A7             and   a                   
+013D  20 F7          jr    nz,$-7              
+013F  0B             dec   bc                  
+0140  78             ld    a,b                 
+0141  B1             or    c                   
+0142  20 F5          jr    nz,$-9              
+0144  18 A1          jr    $-93                
+0146  4D             ld    c,l                 
+0147  44             ld    b,h                 
+0148  1E 02          ld    e,002h              
+014A  49             ld    c,c                 
+014B  44             ld    b,h                 
+014C  0D             dec   c                   
+014D  02             ld    (bc),a              
+014E  52             ld    d,d                 
+014F  44             ld    b,h                 
+0150  8F             adc   a,a                 
+0151  02             ld    (bc),a              
+0152  42             ld    b,d                 
+0153  44             ld    b,h                 
+0154  66             ld    h,(hl)              
+0155  03             inc   bc                  
+0156  52             ld    d,d                 
+0157  42             ld    b,d                 
+0158  9A             sbc   a,d                 
+0159  03             inc   bc                  
+015A  45             ld    b,l                 
+015B  00             nop                       
+015C  0A             ld    a,(bc)              
+015D  03             inc   bc                  
+015E  46             ld    b,(hl)              
+015F  00             nop                       
+0160  54             ld    d,h                 
+0161  03             inc   bc                  
+0162  49             ld    c,c                 
+0163  00             nop                       
+0164  69             ld    l,c                 
+0165  02             ld    (bc),a              
+0166  4F             ld    c,a                 
+0167  00             nop                       
+0168  75             ld    (hl),l              
+0169  02             ld    (bc),a              
+016A  47             ld    b,a                 
+016B  00             nop                       
+016C  C5             push  bc                  
+016D  01 54 00       ld    bc,00054h           
+0170  82             add   a,d                 
+0171  02             ld    (bc),a              
+0172  4C             ld    c,h                 
+0173  00             nop                       
+0174  BA             cp    d                   
+0175  03             inc   bc                  
+0176  46             ld    b,(hl)              
+0177  41             ld    b,c                 
+0178  CD 02 43       call  04302h              
+017B  42             ld    b,d                 
+017C  D2 02 45       jp    nc,04502h           
+017F  44             ld    b,h                 
+0180  D7             rst   10h                 
+0181  02             ld    (bc),a              
+0182  4C             ld    c,h                 
+0183  48             ld    c,b                 
+0184  DC 02 58       call  c,05802h            
+0187  49             ld    c,c                 
+0188  E1             pop   hl                  
+0189  02             ld    (bc),a              
+018A  59             ld    e,c                 
+018B  49             ld    c,c                 
+018C  E6 02          and   002h                
+018E  43             ld    b,e                 
+018F  50             ld    d,b                 
+0190  EB             ex    de,hl               
+0191  02             ld    (bc),a              
+0192  50             ld    d,b                 
+0193  53             ld    d,e                 
+0194  F0             ret   p                   
+0195  02             ld    (bc),a              
+0196  3F             ccf                       
+0197  00             nop                       
+0198  9B             sbc   a,e                 
+0199  01 00 21       ld    bc,02100h           
+019C  0F             rrca                      
+019D  0E CD          ld    c,0cdh              
+019F  D0             ret   nc                  
+01A0  04             inc   b                   
+01A1  06 19          ld    b,019h              
+01A3  7E             ld    a,(hl)              
+01A4  23             inc   hl                  
+01A5  A7             and   a                   
+01A6  28 19          jr    z,$+27              
+01A8  FE 7C          cp    07ch                
+01AA  28 06          jr    z,$+8               
+01AC  CD AD 0F       call  00fadh              
+01AF  05             dec   b                   
+01B0  18 F1          jr    $-13                
+01B2  CD 06 05       call  00506h              
+01B5  10 FB          djnz  $-3                 
+01B7  3E 2D          ld    a,02dh              
+01B9  CD AD 0F       call  00fadh              
+01BC  CD 06 05       call  00506h              
+01BF  18 E2          jr    $-28                
+01C1  B6             or    (hl)                
+01C2  20 DA          jr    nz,$-36             
+01C4  C9             ret                       
+01C5  2A 0C 78       ld    hl,(0780ch)         
+01C8  44             ld    b,h                 
+01C9  4D             ld    c,l                 
+01CA  CD 9D 04       call  0049dh              
+01CD  22 0C 78       ld    (0780ch),hl         
+01D0  CD D0 04       call  004d0h              
+01D3  CD CD 06       call  006cdh              
+01D6  21 11 78       ld    hl,07811h           
+01D9  06 08          ld    b,008h              
+01DB  5E             ld    e,(hl)              
+01DC  23             inc   hl                  
+01DD  56             ld    d,(hl)              
+01DE  23             inc   hl                  
+01DF  7A             ld    a,d                 
+01E0  B5             or    l                   
+01E1  28 05          jr    z,$+7               
+01E3  1A             ld    a,(de)              
+01E4  77             ld    (hl),a              
+01E5  3E FF          ld    a,0ffh              
+01E7  12             ld    (de),a              
+01E8  23             inc   hl                  
+01E9  10 F0          djnz  $-14                
+01EB  DD 2A 08 78    ld    ix,(07808h)         
+01EF  FD 2A 0A 78    ld    iy,(0780ah)         
+01F3  2A 02 78       ld    hl,(07802h)         
+01F6  44             ld    b,h                 
+01F7  4D             ld    c,l                 
+01F8  2A 04 78       ld    hl,(07804h)         
+01FB  EB             ex    de,hl               
+01FC  2A 00 78       ld    hl,(07800h)         
+01FF  E5             push  hl                  
+0200  F1             pop   af                  
+0201  2A 0E 78       ld    hl,(0780eh)         
+0204  F9             ld    sp,hl               
+0205  2A 0C 78       ld    hl,(0780ch)         
+0208  E5             push  hl                  
+0209  2A 06 78       ld    hl,(07806h)         
+020C  C9             ret                       
+020D  CD 89 04       call  00489h              
+0210  CD D0 04       call  004d0h              
+0213  CD 19 05       call  00519h              
+0216  CD 55 02       call  00255h              
+0219  38 F5          jr    c,$-9               
+021B  28 F3          jr    z,$-11              
+021D  C9             ret                       
+021E  CD 89 04       call  00489h              
+0221  CD D0 04       call  004d0h              
+0224  CD AE 04       call  004aeh              
+0227  CD 06 05       call  00506h              
+022A  06 10          ld    b,010h              
+022C  E5             push  hl                  
+022D  CD 06 05       call  00506h              
+0230  7E             ld    a,(hl)              
+0231  CD B3 04       call  004b3h              
+0234  23             inc   hl                  
+0235  78             ld    a,b                 
+0236  3D             dec   a                   
+0237  E6 03          and   003h                
+0239  CC 06 05       call  z,00506h            
+023C  05             dec   b                   
+023D  20 EE          jr    nz,$-16             
+023F  E1             pop   hl                  
+0240  CD 06 05       call  00506h              
+0243  06 10          ld    b,010h              
+0245  7E             ld    a,(hl)              
+0246  CD 5B 02       call  0025bh              
+0249  23             inc   hl                  
+024A  05             dec   b                   
+024B  20 F8          jr    nz,$-6              
+024D  CD 55 02       call  00255h              
+0250  38 CF          jr    c,$-47              
+0252  28 CD          jr    z,$-49              
+0254  C9             ret                       
+0255  7C             ld    a,h                 
+0256  BA             cp    d                   
+0257  C0             ret   nz                  
+0258  7D             ld    a,l                 
+0259  BB             cp    e                   
+025A  C9             ret                       
+025B  FE 20          cp    020h                
+025D  38 05          jr    c,$+7               
+025F  FE 7F          cp    07fh                
+0261  DA AD 0F       jp    c,00fadh            
+0264  3E 2E          ld    a,02eh              
+0266  C3 AD 0F       jp    00fadh              
+0269  CD 34 04       call  00434h              
+026C  4F             ld    c,a                 
+026D  CD 06 05       call  00506h              
+0270  ED 78          in    a,(c)               
+0272  C3 B3 04       jp    004b3h              
+0275  CD 34 04       call  00434h              
+0278  4F             ld    c,a                 
+0279  CD 06 05       call  00506h              
+027C  CD 34 04       call  00434h              
+027F  ED 79          out   (c),a               
+0281  C9             ret                       
+0282  2A 0C 78       ld    hl,(0780ch)         
+0285  4D             ld    c,l                 
+0286  CD 19 05       call  00519h              
+0289  CD D0 04       call  004d0h              
+028C  CD D5 06       call  006d5h              
+028F  21 AC 02       ld    hl,002ach           
+0292  11 00 78       ld    de,07800h           
+0295  CD 06 05       call  00506h              
+0298  CD 10 05       call  00510h              
+029B  1A             ld    a,(de)              
+029C  4F             ld    c,a                 
+029D  13             inc   de                  
+029E  1A             ld    a,(de)              
+029F  13             inc   de                  
+02A0  CD B3 04       call  004b3h              
+02A3  79             ld    a,c                 
+02A4  CD B3 04       call  004b3h              
+02A7  7E             ld    a,(hl)              
+02A8  A7             and   a                   
+02A9  20 EA          jr    nz,$-20             
+02AB  C9             ret                       
+02AC  41             ld    b,c                 
+02AD  46             ld    b,(hl)              
+02AE  3D             dec   a                   
+02AF  00             nop                       
+02B0  42             ld    b,d                 
+02B1  43             ld    b,e                 
+02B2  3D             dec   a                   
+02B3  00             nop                       
+02B4  44             ld    b,h                 
+02B5  45             ld    b,l                 
+02B6  3D             dec   a                   
+02B7  00             nop                       
+02B8  48             ld    c,b                 
+02B9  4C             ld    c,h                 
+02BA  3D             dec   a                   
+02BB  00             nop                       
+02BC  49             ld    c,c                 
+02BD  58             ld    e,b                 
+02BE  3D             dec   a                   
+02BF  00             nop                       
+02C0  49             ld    c,c                 
+02C1  59             ld    e,c                 
+02C2  3D             dec   a                   
+02C3  00             nop                       
+02C4  50             ld    d,b                 
+02C5  43             ld    b,e                 
+02C6  3D             dec   a                   
+02C7  00             nop                       
+02C8  53             ld    d,e                 
+02C9  50             ld    d,b                 
+02CA  3D             dec   a                   
+02CB  00             nop                       
+02CC  00             nop                       
+02CD  21 00 78       ld    hl,07800h           
+02D0  18 21          jr    $+35                
+02D2  21 02 78       ld    hl,07802h           
+02D5  18 1C          jr    $+30                
+02D7  21 04 78       ld    hl,07804h           
+02DA  18 17          jr    $+25                
+02DC  21 06 78       ld    hl,07806h           
+02DF  18 12          jr    $+20                
+02E1  21 08 78       ld    hl,07808h           
+02E4  18 0D          jr    $+15                
+02E6  21 0A 78       ld    hl,0780ah           
+02E9  18 08          jr    $+10                
+02EB  21 0C 78       ld    hl,0780ch           
+02EE  18 03          jr    $+5                 
+02F0  21 0E 78       ld    hl,0780eh           
+02F3  54             ld    d,h                 
+02F4  5D             ld    e,l                 
+02F5  7E             ld    a,(hl)              
+02F6  23             inc   hl                  
+02F7  66             ld    h,(hl)              
+02F8  6F             ld    l,a                 
+02F9  CD AE 04       call  004aeh              
+02FC  3E 2D          ld    a,02dh              
+02FE  CD AD 0F       call  00fadh              
+0301  CD 80 04       call  00480h              
+0304  7D             ld    a,l                 
+0305  12             ld    (de),a              
+0306  13             inc   de                  
+0307  7C             ld    a,h                 
+0308  12             ld    (de),a              
+0309  C9             ret                       
+030A  CD 80 04       call  00480h              
+030D  CD D0 04       call  004d0h              
+0310  CD AE 04       call  004aeh              
+0313  CD 06 05       call  00506h              
+0316  7E             ld    a,(hl)              
+0317  CD B3 04       call  004b3h              
+031A  3E 2D          ld    a,02dh              
+031C  CD AD 0F       call  00fadh              
+031F  CD 47 04       call  00447h              
+0322  38 09          jr    c,$+11              
+0324  77             ld    (hl),a              
+0325  23             inc   hl                  
+0326  7D             ld    a,l                 
+0327  E6 07          and   007h                
+0329  28 E2          jr    z,$-28              
+032B  18 E6          jr    $-24                
+032D  FE 20          cp    020h                
+032F  20 05          jr    nz,$+7              
+0331  CD 06 05       call  00506h              
+0334  18 EF          jr    $-15                
+0336  FE 27          cp    027h                
+0338  20 0C          jr    nz,$+14             
+033A  CD A5 0F       call  00fa5h              
+033D  A7             and   a                   
+033E  28 FA          jr    z,$-4               
+0340  77             ld    (hl),a              
+0341  CD 5B 02       call  0025bh              
+0344  18 DF          jr    $-31                
+0346  FE 1B          cp    01bh                
+0348  C8             ret   z                   
+0349  FE 0D          cp    00dh                
+034B  C8             ret   z                   
+034C  FE 08          cp    008h                
+034E  C2 29 01       jp    nz,00129h           
+0351  2B             dec   hl                  
+0352  18 B9          jr    $-69                
+0354  CD 89 04       call  00489h              
+0357  CD 06 05       call  00506h              
+035A  CD 34 04       call  00434h              
+035D  4F             ld    c,a                 
+035E  71             ld    (hl),c              
+035F  CD 55 02       call  00255h              
+0362  23             inc   hl                  
+0363  38 F9          jr    c,$-5               
+0365  C9             ret                       
+0366  11 11 78       ld    de,07811h           
+0369  0E 00          ld    c,000h              
+036B  CD 0B 05       call  0050bh              
+036E  20 42          jr    nz,$+68             
+0370  00             nop                       
+0371  79             ld    a,c                 
+0372  C6 30          add   a,030h              
+0374  CD AD 0F       call  00fadh              
+0377  3E 3D          ld    a,03dh              
+0379  CD AD 0F       call  00fadh              
+037C  1A             ld    a,(de)              
+037D  6F             ld    l,a                 
+037E  13             inc   de                  
+037F  1A             ld    a,(de)              
+0380  67             ld    h,a                 
+0381  13             inc   de                  
+0382  13             inc   de                  
+0383  B5             or    l                   
+0384  20 0A          jr    nz,$+12             
+0386  CD 0B 05       call  0050bh              
+0389  2D             dec   l                   
+038A  2D             dec   l                   
+038B  2D             dec   l                   
+038C  2D             dec   l                   
+038D  00             nop                       
+038E  18 03          jr    $+5                 
+0390  CD AE 04       call  004aeh              
+0393  0C             inc   c                   
+0394  79             ld    a,c                 
+0395  FE 08          cp    008h                
+0397  38 D2          jr    c,$-44              
+0399  C9             ret                       
+039A  CD 62 04       call  00462h              
+039D  D6 30          sub   030h                
+039F  FE 08          cp    008h                
+03A1  D2 29 01       jp    nc,00129h           
+03A4  5F             ld    e,a                 
+03A5  87             add   a,a                 
+03A6  83             add   a,e                 
+03A7  16 78          ld    d,078h              
+03A9  C6 11          add   a,011h              
+03AB  5F             ld    e,a                 
+03AC  30 01          jr    nc,$+3              
+03AE  14             inc   d                   
+03AF  CD 06 05       call  00506h              
+03B2  CD 80 04       call  00480h              
+03B5  EB             ex    de,hl               
+03B6  73             ld    (hl),e              
+03B7  23             inc   hl                  
+03B8  72             ld    (hl),d              
+03B9  C9             ret                       
+03BA  3E 30          ld    a,030h              
+03BC  32 10 78       ld    (07810h),a          
+03BF  CD C8 03       call  003c8h              
+03C2  C2 29 01       jp    nz,00129h           
+03C5  30 F8          jr    nc,$-6              
+03C7  C9             ret                       
+03C8  CD 62 04       call  00462h              
+03CB  FE 3A          cp    03ah                
+03CD  28 37          jr    z,$+57              
+03CF  FE 53          cp    053h                
+03D1  20 F5          jr    nz,$-9              
+03D3  CD 62 04       call  00462h              
+03D6  FE 30          cp    030h                
+03D8  28 EE          jr    z,$-16              
+03DA  FE 39          cp    039h                
+03DC  28 51          jr    z,$+83              
+03DE  FE 31          cp    031h                
+03E0  20 4F          jr    nz,$+81             
+03E2  CD 34 04       call  00434h              
+03E5  4F             ld    c,a                 
+03E6  D6 03          sub   003h                
+03E8  5F             ld    e,a                 
+03E9  CD 34 04       call  00434h              
+03EC  67             ld    h,a                 
+03ED  81             add   a,c                 
+03EE  4F             ld    c,a                 
+03EF  CD 34 04       call  00434h              
+03F2  6F             ld    l,a                 
+03F3  81             add   a,c                 
+03F4  4F             ld    c,a                 
+03F5  CD 34 04       call  00434h              
+03F8  77             ld    (hl),a              
+03F9  23             inc   hl                  
+03FA  81             add   a,c                 
+03FB  4F             ld    c,a                 
+03FC  1D             dec   e                   
+03FD  20 F6          jr    nz,$-8              
+03FF  CD 34 04       call  00434h              
+0402  81             add   a,c                 
+0403  3C             inc   a                   
+0404  A7             and   a                   
+0405  C9             ret                       
+0406  CD 34 04       call  00434h              
+0409  A7             and   a                   
+040A  28 23          jr    z,$+37              
+040C  4F             ld    c,a                 
+040D  5F             ld    e,a                 
+040E  CD 34 04       call  00434h              
+0411  67             ld    h,a                 
+0412  81             add   a,c                 
+0413  4F             ld    c,a                 
+0414  CD 34 04       call  00434h              
+0417  6F             ld    l,a                 
+0418  81             add   a,c                 
+0419  4F             ld    c,a                 
+041A  CD 34 04       call  00434h              
+041D  81             add   a,c                 
+041E  4F             ld    c,a                 
+041F  CD 34 04       call  00434h              
+0422  77             ld    (hl),a              
+0423  23             inc   hl                  
+0424  81             add   a,c                 
+0425  4F             ld    c,a                 
+0426  1D             dec   e                   
+0427  20 F6          jr    nz,$-8              
+0429  CD 34 04       call  00434h              
+042C  81             add   a,c                 
+042D  A7             and   a                   
+042E  C9             ret                       
+042F  37             scf                       
+0430  C9             ret                       
+0431  F6 FF          or    0ffh                
+0433  C9             ret                       
+0434  CD 4D 04       call  0044dh              
+0437  DA 29 01       jp    c,00129h            
+043A  07             rlca                      
+043B  07             rlca                      
+043C  07             rlca                      
+043D  07             rlca                      
+043E  47             ld    b,a                 
+043F  CD 4D 04       call  0044dh              
+0442  DA 29 01       jp    c,00129h            
+0445  B0             or    b                   
+0446  C9             ret                       
+0447  CD 4D 04       call  0044dh              
+044A  30 EE          jr    nc,$-16             
+044C  C9             ret                       
+044D  CD 62 04       call  00462h              
+0450  FE 30          cp    030h                
+0452  D8             ret   c                   
+0453  D6 30          sub   030h                
+0455  FE 0A          cp    00ah                
+0457  3F             ccf                       
+0458  D0             ret   nc                  
+0459  D6 07          sub   007h                
+045B  FE 0A          cp    00ah                
+045D  D8             ret   c                   
+045E  FE 10          cp    010h                
+0460  3F             ccf                       
+0461  C9             ret                       
+0462  C5             push  bc                  
+0463  3A 10 78       ld    a,(07810h)          
+0466  47             ld    b,a                 
+0467  CD A5 0F       call  00fa5h              
+046A  A7             and   a                   
+046B  28 FA          jr    z,$-4               
+046D  CB 70          bit   6,b                 
+046F  28 03          jr    z,$+5               
+0471  CD AD 0F       call  00fadh              
+0474  CB 68          bit   5,b                 
+0476  28 06          jr    z,$+8               
+0478  FE 61          cp    061h                
+047A  38 02          jr    c,$+4               
+047C  E6 5F          and   05fh                
+047E  C1             pop   bc                  
+047F  C9             ret                       
+0480  CD 34 04       call  00434h              
+0483  67             ld    h,a                 
+0484  CD 34 04       call  00434h              
+0487  6F             ld    l,a                 
+0488  C9             ret                       
+0489  01 00 00       ld    bc,00000h           
+048C  CD 9D 04       call  0049dh              
+048F  EB             ex    de,hl               
+0490  3E 2C          ld    a,02ch              
+0492  CD AD 0F       call  00fadh              
+0495  01 FF FF       ld    bc,0ffffh           
+0498  CD 9D 04       call  0049dh              
+049B  EB             ex    de,hl               
+049C  C9             ret                       
+049D  CD 47 04       call  00447h              
+04A0  30 E1          jr    nc,$-29             
+04A2  FE 20          cp    020h                
+04A4  C2 29 01       jp    nz,00129h           
+04A7  3E 08          ld    a,008h              
+04A9  CD AD 0F       call  00fadh              
+04AC  60             ld    h,b                 
+04AD  69             ld    l,c                 
+04AE  7C             ld    a,h                 
+04AF  CD B3 04       call  004b3h              
+04B2  7D             ld    a,l                 
+04B3  F5             push  af                  
+04B4  CB 1F          rr    a                   
+04B6  CB 1F          rr    a                   
+04B8  CB 1F          rr    a                   
+04BA  CB 1F          rr    a                   
+04BC  CD C0 04       call  004c0h              
+04BF  F1             pop   af                  
+04C0  F5             push  af                  
+04C1  E6 0F          and   00fh                
+04C3  FE 0A          cp    00ah                
+04C5  38 02          jr    c,$+4               
+04C7  C6 07          add   a,007h              
+04C9  C6 30          add   a,030h              
+04CB  CD AD 0F       call  00fadh              
+04CE  F1             pop   af                  
+04CF  C9             ret                       
+04D0  CD A5 0F       call  00fa5h              
+04D3  FE 1B          cp    01bh                
+04D5  CA E7 00       jp    z,000e7h            
+04D8  FE 0D          cp    00dh                
+04DA  20 0A          jr    nz,$+12             
+04DC  3A 10 78       ld    a,(07810h)          
+04DF  E6 7F          and   07fh                
+04E1  32 10 78       ld    (07810h),a          
+04E4  18 16          jr    $+24                
+04E6  FE 20          cp    020h                
+04E8  20 0B          jr    nz,$+13             
+04EA  3A 10 78       ld    a,(07810h)          
+04ED  EE 80          xor   080h                
+04EF  F2 FC 04       jp    p,004fch            
+04F2  32 10 78       ld    (07810h),a          
+04F5  3A 10 78       ld    a,(07810h)          
+04F8  A7             and   a                   
+04F9  FA D0 04       jp    m,004d0h            
+04FC  3E 0A          ld    a,00ah              
+04FE  CD AD 0F       call  00fadh              
+0501  3E 0D          ld    a,00dh              
+0503  C3 AD 0F       jp    00fadh              
+0506  3E 20          ld    a,020h              
+0508  C3 AD 0F       jp    00fadh              
+050B  E1             pop   hl                  
+050C  CD 10 05       call  00510h              
+050F  E9             jp    (hl)                
+0510  7E             ld    a,(hl)              
+0511  23             inc   hl                  
+0512  A7             and   a                   
+0513  C8             ret   z                   
+0514  CD AD 0F       call  00fadh              
+0517  18 F7          jr    $-7                 
+0519  22 29 78       ld    (07829h),hl         
+051C  CD AE 04       call  004aeh              
+051F  D5             push  de                  
+0520  C5             push  bc                  
+0521  CD 7C 05       call  0057ch              
+0524  EB             ex    de,hl               
+0525  2A 29 78       ld    hl,(07829h)         
+0528  06 05          ld    b,005h              
+052A  CD 06 05       call  00506h              
+052D  7E             ld    a,(hl)              
+052E  23             inc   hl                  
+052F  CD B3 04       call  004b3h              
+0532  05             dec   b                   
+0533  CD 55 02       call  00255h              
+0536  20 F2          jr    nz,$-12             
+0538  CD 06 05       call  00506h              
+053B  CD 06 05       call  00506h              
+053E  CD 06 05       call  00506h              
+0541  10 F5          djnz  $-9                 
+0543  2A 29 78       ld    hl,(07829h)         
+0546  06 08          ld    b,008h              
+0548  7E             ld    a,(hl)              
+0549  23             inc   hl                  
+054A  CD 5B 02       call  0025bh              
+054D  05             dec   b                   
+054E  CD 55 02       call  00255h              
+0551  20 F5          jr    nz,$-9              
+0553  CD 06 05       call  00506h              
+0556  10 FB          djnz  $-3                 
+0558  DD 21 2D 78    ld    ix,0782dh           
+055C  DD 7E 00       ld    a,(ix+000h)         
+055F  A7             and   a                   
+0560  28 17          jr    z,$+25              
+0562  DD 23          inc   ix                  
+0564  FE 20          cp    020h                
+0566  28 06          jr    z,$+8               
+0568  CD AD 0F       call  00fadh              
+056B  04             inc   b                   
+056C  18 EE          jr    $-16                
+056E  CD 06 05       call  00506h              
+0571  04             inc   b                   
+0572  78             ld    a,b                 
+0573  E6 07          and   007h                
+0575  20 F7          jr    nz,$-7              
+0577  18 E3          jr    $-27                
+0579  C1             pop   bc                  
+057A  D1             pop   de                  
+057B  C9             ret                       
+057C  7E             ld    a,(hl)              
+057D  23             inc   hl                  
+057E  11 CF 0A       ld    de,00acfh           
+0581  FE CB          cp    0cbh                
+0583  28 19          jr    z,$+27              
+0585  11 19 0B       ld    de,00b19h           
+0588  FE DD          cp    0ddh                
+058A  28 12          jr    z,$+20              
+058C  11 01 0D       ld    de,00d01h           
+058F  FE ED          cp    0edh                
+0591  28 0B          jr    z,$+13              
+0593  11 0D 0C       ld    de,00c0dh           
+0596  FE FD          cp    0fdh                
+0598  28 04          jr    z,$+6               
+059A  11 10 09       ld    de,00910h           
+059D  2B             dec   hl                  
+059E  7E             ld    a,(hl)              
+059F  23             inc   hl                  
+05A0  32 2B 78       ld    (0782bh),a          
+05A3  47             ld    b,a                 
+05A4  1A             ld    a,(de)              
+05A5  13             inc   de                  
+05A6  A0             and   b                   
+05A7  4F             ld    c,a                 
+05A8  1A             ld    a,(de)              
+05A9  13             inc   de                  
+05AA  B9             cp    c                   
+05AB  28 0A          jr    z,$+12              
+05AD  1A             ld    a,(de)              
+05AE  13             inc   de                  
+05AF  A7             and   a                   
+05B0  20 FB          jr    nz,$-3              
+05B2  1A             ld    a,(de)              
+05B3  13             inc   de                  
+05B4  A7             and   a                   
+05B5  20 EF          jr    nz,$-15             
+05B7  DD 21 2D 78    ld    ix,0782dh           
+05BB  1A             ld    a,(de)              
+05BC  A7             and   a                   
+05BD  CA A9 06       jp    z,006a9h            
+05C0  13             inc   de                  
+05C1  FA A1 06       jp    m,006a1h            
+05C4  FE 73          cp    073h                
+05C6  20 21          jr    nz,$+35             
+05C8  3A 2B 78       ld    a,(0782bh)          
+05CB  E6 07          and   007h                
+05CD  01 00 08       ld    bc,00800h           
+05D0  E5             push  hl                  
+05D1  6F             ld    l,a                 
+05D2  26 00          ld    h,000h              
+05D4  29             add   hl,hl               
+05D5  29             add   hl,hl               
+05D6  09             add   hl,bc               
+05D7  0E 04          ld    c,004h              
+05D9  7E             ld    a,(hl)              
+05DA  A7             and   a                   
+05DB  28 09          jr    z,$+11              
+05DD  23             inc   hl                  
+05DE  DD 77 00       ld    (ix+000h),a         
+05E1  DD 23          inc   ix                  
+05E3  0D             dec   c                   
+05E4  20 F3          jr    nz,$-11             
+05E6  E1             pop   hl                  
+05E7  18 D2          jr    $-44                
+05E9  FE 64          cp    064h                
+05EB  20 08          jr    nz,$+10             
+05ED  3A 2B 78       ld    a,(0782bh)          
+05F0  1F             rra                       
+05F1  1F             rra                       
+05F2  1F             rra                       
+05F3  18 D6          jr    $-40                
+05F5  FE 70          cp    070h                
+05F7  20 0E          jr    nz,$+16             
+05F9  01 20 08       ld    bc,00820h           
+05FC  3A 2B 78       ld    a,(0782bh)          
+05FF  1F             rra                       
+0600  1F             rra                       
+0601  1F             rra                       
+0602  1F             rra                       
+0603  E6 03          and   003h                
+0605  18 C9          jr    $-53                
+0607  FE 62          cp    062h                
+0609  20 07          jr    nz,$+9              
+060B  7E             ld    a,(hl)              
+060C  23             inc   hl                  
+060D  CD AE 06       call  006aeh              
+0610  18 A9          jr    $-85                
+0612  FE 77          cp    077h                
+0614  20 0D          jr    nz,$+15             
+0616  46             ld    b,(hl)              
+0617  23             inc   hl                  
+0618  7E             ld    a,(hl)              
+0619  23             inc   hl                  
+061A  CD AE 06       call  006aeh              
+061D  78             ld    a,b                 
+061E  CD AE 06       call  006aeh              
+0621  18 98          jr    $-102               
+0623  FE 78          cp    078h                
+0625  20 05          jr    nz,$+7              
+0627  01 30 08       ld    bc,00830h           
+062A  18 D0          jr    $-46                
+062C  FE 79          cp    079h                
+062E  20 05          jr    nz,$+7              
+0630  01 40 08       ld    bc,00840h           
+0633  18 C7          jr    $-55                
+0635  FE 63          cp    063h                
+0637  20 0D          jr    nz,$+15             
+0639  3A 2B 78       ld    a,(0782bh)          
+063C  1F             rra                       
+063D  1F             rra                       
+063E  1F             rra                       
+063F  E6 07          and   007h                
+0641  01 50 08       ld    bc,00850h           
+0644  18 8A          jr    $-116               
+0646  FE 72          cp    072h                
+0648  20 17          jr    nz,$+25             
+064A  7E             ld    a,(hl)              
+064B  23             inc   hl                  
+064C  06 00          ld    b,000h              
+064E  A7             and   a                   
+064F  F2 53 06       jp    p,00653h            
+0652  05             dec   b                   
+0653  85             add   a,l                 
+0654  4F             ld    c,a                 
+0655  7C             ld    a,h                 
+0656  88             adc   a,b                 
+0657  CD AE 06       call  006aeh              
+065A  79             ld    a,c                 
+065B  CD AE 06       call  006aeh              
+065E  C3 BB 05       jp    005bbh              
+0661  FE 7A          cp    07ah                
+0663  20 1D          jr    nz,$+31             
+0665  7E             ld    a,(hl)              
+0666  32 2C 78       ld    (0782ch),a          
+0669  23             inc   hl                  
+066A  7E             ld    a,(hl)              
+066B  32 2B 78       ld    (0782bh),a          
+066E  47             ld    b,a                 
+066F  1A             ld    a,(de)              
+0670  A0             and   b                   
+0671  4F             ld    c,a                 
+0672  13             inc   de                  
+0673  1A             ld    a,(de)              
+0674  13             inc   de                  
+0675  B9             cp    c                   
+0676  28 06          jr    z,$+8               
+0678  2B             dec   hl                  
+0679  06 CB          ld    b,0cbh              
+067B  C3 AD 05       jp    005adh              
+067E  23             inc   hl                  
+067F  C3 BB 05       jp    005bbh              
+0682  FE 76          cp    076h                
+0684  20 05          jr    nz,$+7              
+0686  3A 2C 78       ld    a,(0782ch)          
+0689  18 82          jr    $-124               
+068B  FE 6E          cp    06eh                
+068D  20 0A          jr    nz,$+12             
+068F  3A 2B 78       ld    a,(0782bh)          
+0692  1F             rra                       
+0693  1F             rra                       
+0694  1F             rra                       
+0695  E6 07          and   007h                
+0697  C6 30          add   a,030h              
+0699  DD 77 00       ld    (ix+000h),a         
+069C  DD 23          inc   ix                  
+069E  C3 BB 05       jp    005bbh              
+06A1  E6 7F          and   07fh                
+06A3  01 70 08       ld    bc,00870h           
+06A6  C3 D0 05       jp    005d0h              
+06A9  DD 36 00 00    ld    (ix+000h),000h      
+06AD  C9             ret                       
+06AE  F5             push  af                  
+06AF  CB 1F          rr    a                   
+06B1  CB 1F          rr    a                   
+06B3  CB 1F          rr    a                   
+06B5  CB 1F          rr    a                   
+06B7  CD BB 06       call  006bbh              
+06BA  F1             pop   af                  
+06BB  F5             push  af                  
+06BC  E6 0F          and   00fh                
+06BE  FE 0A          cp    00ah                
+06C0  38 02          jr    c,$+4               
+06C2  C6 07          add   a,007h              
+06C4  C6 30          add   a,030h              
+06C6  DD 77 00       ld    (ix+000h),a         
+06C9  DD 23          inc   ix                  
+06CB  F1             pop   af                  
+06CC  C9             ret                       
+06CD  2A 0C 78       ld    hl,(0780ch)         
+06D0  E5             push  hl                  
+06D1  CD 7C 05       call  0057ch              
+06D4  C1             pop   bc                  
+06D5  7D             ld    a,l                 
+06D6  91             sub   c                   
+06D7  4F             ld    c,a                 
+06D8  06 00          ld    b,000h              
+06DA  2A 0C 78       ld    hl,(0780ch)         
+06DD  11 2D 78       ld    de,0782dh           
+06E0  ED B0          ldir                      
+06E2  22 0C 78       ld    (0780ch),hl         
+06E5  EB             ex    de,hl               
+06E6  36 C3          ld    (hl),0c3h           
+06E8  23             inc   hl                  
+06E9  36 2E          ld    (hl),02eh           
+06EB  23             inc   hl                  
+06EC  36 07          ld    (hl),007h           
+06EE  3A 2D 78       ld    a,(0782dh)          
+06F1  4F             ld    c,a                 
+06F2  21 CF 0D       ld    hl,00dcfh           
+06F5  06 10          ld    b,010h              
+06F7  7E             ld    a,(hl)              
+06F8  23             inc   hl                  
+06F9  A1             and   c                   
+06FA  BE             cp    (hl)                
+06FB  23             inc   hl                  
+06FC  28 2B          jr    z,$+45              
+06FE  23             inc   hl                  
+06FF  23             inc   hl                  
+0700  10 F5          djnz  $-9                 
+0702  21 00 00       ld    hl,00000h           
+0705  39             add   hl,sp               
+0706  22 2B 78       ld    (0782bh),hl         
+0709  DD 2A 08 78    ld    ix,(07808h)         
+070D  FD 2A 0A 78    ld    iy,(0780ah)         
+0711  2A 02 78       ld    hl,(07802h)         
+0714  44             ld    b,h                 
+0715  4D             ld    c,l                 
+0716  2A 04 78       ld    hl,(07804h)         
+0719  EB             ex    de,hl               
+071A  2A 00 78       ld    hl,(07800h)         
+071D  E5             push  hl                  
+071E  F1             pop   af                  
+071F  2A 0E 78       ld    hl,(0780eh)         
+0722  F9             ld    sp,hl               
+0723  2A 06 78       ld    hl,(07806h)         
+0726  C3 2D 78       jp    0782dh              
+0729  7E             ld    a,(hl)              
+072A  23             inc   hl                  
+072B  66             ld    h,(hl)              
+072C  6F             ld    l,a                 
+072D  E9             jp    (hl)                
+072E  22 06 78       ld    (07806h),hl         
+0731  F5             push  af                  
+0732  E1             pop   hl                  
+0733  22 00 78       ld    (07800h),hl         
+0736  21 00 00       ld    hl,00000h           
+0739  39             add   hl,sp               
+073A  22 0E 78       ld    (0780eh),hl         
+073D  EB             ex    de,hl               
+073E  22 04 78       ld    (07804h),hl         
+0741  60             ld    h,b                 
+0742  69             ld    l,c                 
+0743  22 02 78       ld    (07802h),hl         
+0746  DD 22 08 78    ld    (07808h),ix         
+074A  FD 22 0A 78    ld    (0780ah),iy         
+074E  2A 2B 78       ld    hl,(0782bh)         
+0751  F9             ld    sp,hl               
+0752  C9             ret                       
+0753  3A 2E 78       ld    a,(0782eh)          
+0756  FE E9          cp    0e9h                
+0758  20 A8          jr    nz,$-86             
+075A  2A 08 78       ld    hl,(07808h)         
+075D  18 67          jr    $+105               
+075F  3A 2E 78       ld    a,(0782eh)          
+0762  FE E9          cp    0e9h                
+0764  20 9C          jr    nz,$-98             
+0766  2A 0A 78       ld    hl,(0780ah)         
+0769  18 5B          jr    $+93                
+076B  79             ld    a,c                 
+076C  E6 38          and   038h                
+076E  6F             ld    l,a                 
+076F  26 00          ld    h,000h              
+0771  22 0C 78       ld    (0780ch),hl         
+0774  C9             ret                       
+0775  2A 06 78       ld    hl,(07806h)         
+0778  18 4C          jr    $+78                
+077A  0E 18          ld    c,018h              
+077C  18 0A          jr    $+12                
+077E  0E 10          ld    c,010h              
+0780  18 06          jr    $+8                 
+0782  0E 08          ld    c,008h              
+0784  18 02          jr    $+4                 
+0786  0E 00          ld    c,000h              
+0788  CD E0 07       call  007e0h              
+078B  20 3C          jr    nz,$+62             
+078D  2A 2E 78       ld    hl,(0782eh)         
+0790  18 34          jr    $+54                
+0792  3A 03 78       ld    a,(07803h)          
+0795  3D             dec   a                   
+0796  32 03 78       ld    (07803h),a          
+0799  28 2E          jr    z,$+48              
+079B  3A 2E 78       ld    a,(0782eh)          
+079E  4F             ld    c,a                 
+079F  06 00          ld    b,000h              
+07A1  A7             and   a                   
+07A2  F2 A6 07       jp    p,007a6h            
+07A5  05             dec   b                   
+07A6  2A 0C 78       ld    hl,(0780ch)         
+07A9  09             add   hl,bc               
+07AA  18 1A          jr    $+28                
+07AC  CD E0 07       call  007e0h              
+07AF  20 18          jr    nz,$+26             
+07B1  2A 2E 78       ld    hl,(0782eh)         
+07B4  EB             ex    de,hl               
+07B5  2A 0E 78       ld    hl,(0780eh)         
+07B8  2B             dec   hl                  
+07B9  3A 0D 78       ld    a,(0780dh)          
+07BC  77             ld    (hl),a              
+07BD  2B             dec   hl                  
+07BE  3A 0C 78       ld    a,(0780ch)          
+07C1  77             ld    (hl),a              
+07C2  22 0E 78       ld    (0780eh),hl         
+07C5  EB             ex    de,hl               
+07C6  22 0C 78       ld    (0780ch),hl         
+07C9  C9             ret                       
+07CA  CD E0 07       call  007e0h              
+07CD  20 FA          jr    nz,$-4              
+07CF  2A 0E 78       ld    hl,(0780eh)         
+07D2  7E             ld    a,(hl)              
+07D3  32 0C 78       ld    (0780ch),a          
+07D6  23             inc   hl                  
+07D7  7E             ld    a,(hl)              
+07D8  32 0D 78       ld    (0780dh),a          
+07DB  23             inc   hl                  
+07DC  22 0E 78       ld    (0780eh),hl         
+07DF  C9             ret                       
+07E0  79             ld    a,c                 
+07E1  E6 38          and   038h                
+07E3  F6 C2          or    0c2h                
+07E5  32 31 78       ld    (07831h),a          
+07E8  21 35 78       ld    hl,07835h           
+07EB  22 32 78       ld    (07832h),hl         
+07EE  21 3C C9       ld    hl,0c93ch           
+07F1  22 34 78       ld    (07834h),hl         
+07F4  2A 00 78       ld    hl,(07800h)         
+07F7  26 00          ld    h,000h              
+07F9  E5             push  hl                  
+07FA  F1             pop   af                  
+07FB  CD 31 78       call  07831h              
+07FE  A7             and   a                   
+07FF  C9             ret                       
+0800  42             ld    b,d                 
+0801  00             nop                       
+0802  00             nop                       
+0803  00             nop                       
+0804  43             ld    b,e                 
+0805  00             nop                       
+0806  00             nop                       
+0807  00             nop                       
+0808  44             ld    b,h                 
+0809  00             nop                       
+080A  00             nop                       
+080B  00             nop                       
+080C  45             ld    b,l                 
+080D  00             nop                       
+080E  00             nop                       
+080F  00             nop                       
+0810  48             ld    c,b                 
+0811  00             nop                       
+0812  00             nop                       
+0813  00             nop                       
+0814  4C             ld    c,h                 
+0815  00             nop                       
+0816  00             nop                       
+0817  00             nop                       
+0818  28 48          jr    z,$+74              
+081A  4C             ld    c,h                 
+081B  29             add   hl,hl               
+081C  41             ld    b,c                 
+081D  00             nop                       
+081E  00             nop                       
+081F  00             nop                       
+0820  42             ld    b,d                 
+0821  43             ld    b,e                 
+0822  00             nop                       
+0823  00             nop                       
+0824  44             ld    b,h                 
+0825  45             ld    b,l                 
+0826  00             nop                       
+0827  00             nop                       
+0828  48             ld    c,b                 
+0829  4C             ld    c,h                 
+082A  00             nop                       
+082B  00             nop                       
+082C  53             ld    d,e                 
+082D  50             ld    d,b                 
+082E  00             nop                       
+082F  00             nop                       
+0830  42             ld    b,d                 
+0831  43             ld    b,e                 
+0832  00             nop                       
+0833  00             nop                       
+0834  44             ld    b,h                 
+0835  45             ld    b,l                 
+0836  00             nop                       
+0837  00             nop                       
+0838  49             ld    c,c                 
+0839  58             ld    e,b                 
+083A  00             nop                       
+083B  00             nop                       
+083C  53             ld    d,e                 
+083D  50             ld    d,b                 
+083E  00             nop                       
+083F  00             nop                       
+0840  42             ld    b,d                 
+0841  43             ld    b,e                 
+0842  00             nop                       
+0843  00             nop                       
+0844  44             ld    b,h                 
+0845  45             ld    b,l                 
+0846  00             nop                       
+0847  00             nop                       
+0848  49             ld    c,c                 
+0849  59             ld    e,c                 
+084A  00             nop                       
+084B  00             nop                       
+084C  53             ld    d,e                 
+084D  50             ld    d,b                 
+084E  00             nop                       
+084F  00             nop                       
+0850  4E             ld    c,(hl)              
+0851  5A             ld    e,d                 
+0852  00             nop                       
+0853  00             nop                       
+0854  5A             ld    e,d                 
+0855  00             nop                       
+0856  00             nop                       
+0857  00             nop                       
+0858  4E             ld    c,(hl)              
+0859  43             ld    b,e                 
+085A  00             nop                       
+085B  00             nop                       
+085C  43             ld    b,e                 
+085D  00             nop                       
+085E  00             nop                       
+085F  00             nop                       
+0860  50             ld    d,b                 
+0861  4F             ld    c,a                 
+0862  00             nop                       
+0863  00             nop                       
+0864  50             ld    d,b                 
+0865  45             ld    b,l                 
+0866  00             nop                       
+0867  00             nop                       
+0868  50             ld    d,b                 
+0869  00             nop                       
+086A  00             nop                       
+086B  00             nop                       
+086C  4D             ld    c,l                 
+086D  00             nop                       
+086E  00             nop                       
+086F  00             nop                       
+0870  4C             ld    c,h                 
+0871  44             ld    b,h                 
+0872  20 00          jr    nz,$+2              
+0874  42             ld    b,d                 
+0875  43             ld    b,e                 
+0876  00             nop                       
+0877  00             nop                       
+0878  44             ld    b,h                 
+0879  45             ld    b,l                 
+087A  00             nop                       
+087B  00             nop                       
+087C  48             ld    c,b                 
+087D  4C             ld    c,h                 
+087E  00             nop                       
+087F  00             nop                       
+0880  49             ld    c,c                 
+0881  58             ld    e,b                 
+0882  00             nop                       
+0883  00             nop                       
+0884  49             ld    c,c                 
+0885  59             ld    e,c                 
+0886  00             nop                       
+0887  00             nop                       
+0888  28 42          jr    z,$+68              
+088A  43             ld    b,e                 
+088B  29             add   hl,hl               
+088C  28 44          jr    z,$+70              
+088E  45             ld    b,l                 
+088F  29             add   hl,hl               
+0890  28 48          jr    z,$+74              
+0892  4C             ld    c,h                 
+0893  29             add   hl,hl               
+0894  28 49          jr    z,$+75              
+0896  58             ld    e,b                 
+0897  2B             dec   hl                  
+0898  28 49          jr    z,$+75              
+089A  59             ld    e,c                 
+089B  2B             dec   hl                  
+089C  41             ld    b,c                 
+089D  2C             inc   l                   
+089E  00             nop                       
+089F  00             nop                       
+08A0  2C             inc   l                   
+08A1  41             ld    b,c                 
+08A2  00             nop                       
+08A3  00             nop                       
+08A4  53             ld    d,e                 
+08A5  50             ld    d,b                 
+08A6  00             nop                       
+08A7  00             nop                       
+08A8  50             ld    d,b                 
+08A9  55             ld    d,l                 
+08AA  53             ld    d,e                 
+08AB  48             ld    c,b                 
+08AC  50             ld    d,b                 
+08AD  4F             ld    c,a                 
+08AE  50             ld    d,b                 
+08AF  20 41          jr    nz,$+67             
+08B1  46             ld    b,(hl)              
+08B2  00             nop                       
+08B3  00             nop                       
+08B4  45             ld    b,l                 
+08B5  58             ld    e,b                 
+08B6  00             nop                       
+08B7  00             nop                       
+08B8  4C             ld    c,h                 
+08B9  44             ld    b,h                 
+08BA  00             nop                       
+08BB  00             nop                       
+08BC  43             ld    b,e                 
+08BD  50             ld    d,b                 
+08BE  00             nop                       
+08BF  00             nop                       
+08C0  41             ld    b,c                 
+08C1  44             ld    b,h                 
+08C2  44             ld    b,h                 
+08C3  20 41          jr    nz,$+67             
+08C5  44             ld    b,h                 
+08C6  43             ld    b,e                 
+08C7  20 53          jr    nz,$+85             
+08C9  55             ld    d,l                 
+08CA  42             ld    b,d                 
+08CB  20 53          jr    nz,$+85             
+08CD  42             ld    b,d                 
+08CE  43             ld    b,e                 
+08CF  20 41          jr    nz,$+67             
+08D1  4E             ld    c,(hl)              
+08D2  44             ld    b,h                 
+08D3  20 4F          jr    nz,$+81             
+08D5  52             ld    d,d                 
+08D6  20 00          jr    nz,$+2              
+08D8  58             ld    e,b                 
+08D9  4F             ld    c,a                 
+08DA  52             ld    d,d                 
+08DB  20 49          jr    nz,$+75             
+08DD  4E             ld    c,(hl)              
+08DE  43             ld    b,e                 
+08DF  20 44          jr    nz,$+70             
+08E1  45             ld    b,l                 
+08E2  43             ld    b,e                 
+08E3  20 52          jr    nz,$+84             
+08E5  4C             ld    c,h                 
+08E6  00             nop                       
+08E7  00             nop                       
+08E8  52             ld    d,d                 
+08E9  52             ld    d,d                 
+08EA  00             nop                       
+08EB  00             nop                       
+08EC  4A             ld    c,d                 
+08ED  50             ld    d,b                 
+08EE  20 00          jr    nz,$+2              
+08F0  4A             ld    c,d                 
+08F1  52             ld    d,d                 
+08F2  20 00          jr    nz,$+2              
+08F4  43             ld    b,e                 
+08F5  41             ld    b,c                 
+08F6  4C             ld    c,h                 
+08F7  4C             ld    c,h                 
+08F8  52             ld    d,d                 
+08F9  45             ld    b,l                 
+08FA  54             ld    d,h                 
+08FB  00             nop                       
+08FC  49             ld    c,c                 
+08FD  4E             ld    c,(hl)              
+08FE  00             nop                       
+08FF  00             nop                       
+0900  4F             ld    c,a                 
+0901  55             ld    d,l                 
+0902  54             ld    d,h                 
+0903  00             nop                       
+0904  42             ld    b,d                 
+0905  49             ld    c,c                 
+0906  54             ld    d,h                 
+0907  20 53          jr    nz,$+85             
+0909  45             ld    b,l                 
+090A  54             ld    d,h                 
+090B  20 52          jr    nz,$+84             
+090D  45             ld    b,l                 
+090E  53             ld    d,e                 
+090F  20 FF          jr    nz,$+1              
+0911  76             halt                      
+0912  48             ld    c,b                 
+0913  41             ld    b,c                 
+0914  4C             ld    c,h                 
+0915  54             ld    d,h                 
+0916  00             nop                       
+0917  C0             ret   nz                  
+0918  40             ld    b,b                 
+0919  80             add   a,b                 
+091A  64             ld    h,h                 
+091B  2C             inc   l                   
+091C  73             ld    (hl),e              
+091D  00             nop                       
+091E  C7             rst   0                   
+091F  06 80          ld    b,080h              
+0921  64             ld    h,h                 
+0922  2C             inc   l                   
+0923  62             ld    h,d                 
+0924  00             nop                       
+0925  FF             rst   38h                 
+0926  0A             ld    a,(bc)              
+0927  80             add   a,b                 
+0928  8B             adc   a,e                 
+0929  86             add   a,(hl)              
+092A  00             nop                       
+092B  FF             rst   38h                 
+092C  1A             ld    a,(de)              
+092D  80             add   a,b                 
+092E  8B             adc   a,e                 
+092F  87             add   a,a                 
+0930  00             nop                       
+0931  FF             rst   38h                 
+0932  3A 80 8B       ld    a,(08b80h)          
+0935  28 77          jr    z,$+121             
+0937  29             add   hl,hl               
+0938  00             nop                       
+0939  FF             rst   38h                 
+093A  02             ld    (bc),a              
+093B  80             add   a,b                 
+093C  86             add   a,(hl)              
+093D  8C             adc   a,h                 
+093E  00             nop                       
+093F  FF             rst   38h                 
+0940  12             ld    (de),a              
+0941  80             add   a,b                 
+0942  87             add   a,a                 
+0943  8C             adc   a,h                 
+0944  00             nop                       
+0945  CF             rst   8                   
+0946  01 80 70       ld    bc,07080h           
+0949  2C             inc   l                   
+094A  77             ld    (hl),a              
+094B  00             nop                       
+094C  FF             rst   38h                 
+094D  32 80 28       ld    (02880h),a          
+0950  77             ld    (hl),a              
+0951  29             add   hl,hl               
+0952  8C             adc   a,h                 
+0953  00             nop                       
+0954  FF             rst   38h                 
+0955  2A 80 83       ld    hl,(08380h)         
+0958  2C             inc   l                   
+0959  28 77          jr    z,$+121             
+095B  29             add   hl,hl               
+095C  00             nop                       
+095D  FF             rst   38h                 
+095E  22 80 28       ld    (02880h),hl         
+0961  77             ld    (hl),a              
+0962  29             add   hl,hl               
+0963  2C             inc   l                   
+0964  83             add   a,e                 
+0965  00             nop                       
+0966  FF             rst   38h                 
+0967  F9             ld    sp,hl               
+0968  80             add   a,b                 
+0969  8D             adc   a,l                 
+096A  2C             inc   l                   
+096B  83             add   a,e                 
+096C  00             nop                       
+096D  FF             rst   38h                 
+096E  F5             push  af                  
+096F  8E             adc   a,(hl)              
+0970  20 90          jr    nz,$-110            
+0972  00             nop                       
+0973  CF             rst   8                   
+0974  C5             push  bc                  
+0975  8E             adc   a,(hl)              
+0976  20 70          jr    nz,$+114            
+0978  00             nop                       
+0979  FF             rst   38h                 
+097A  F1             pop   af                  
+097B  8F             adc   a,a                 
+097C  90             sub   b                   
+097D  00             nop                       
+097E  CF             rst   8                   
+097F  C1             pop   bc                  
+0980  8F             adc   a,a                 
+0981  70             ld    (hl),b              
+0982  00             nop                       
+0983  FF             rst   38h                 
+0984  EB             ex    de,hl               
+0985  91             sub   c                   
+0986  20 82          jr    nz,$-124            
+0988  2C             inc   l                   
+0989  83             add   a,e                 
+098A  00             nop                       
+098B  FF             rst   38h                 
+098C  08             ex    af,af'              
+098D  91             sub   c                   
+098E  20 90          jr    nz,$-110            
+0990  2C             inc   l                   
+0991  90             sub   b                   
+0992  27             daa                       
+0993  00             nop                       
+0994  FF             rst   38h                 
+0995  D9             exx                       
+0996  91             sub   c                   
+0997  58             ld    e,b                 
+0998  00             nop                       
+0999  FF             rst   38h                 
+099A  E3             ex    (sp),hl             
+099B  91             sub   c                   
+099C  20 28          jr    nz,$+42             
+099E  8D             adc   a,l                 
+099F  29             add   hl,hl               
+09A0  2C             inc   l                   
+09A1  83             add   a,e                 
+09A2  00             nop                       
+09A3  F8             ret   m                   
+09A4  80             add   a,b                 
+09A5  94             sub   h                   
+09A6  8B             adc   a,e                 
+09A7  73             ld    (hl),e              
+09A8  00             nop                       
+09A9  FF             rst   38h                 
+09AA  C6 94          add   a,094h              
+09AC  8B             adc   a,e                 
+09AD  62             ld    h,d                 
+09AE  00             nop                       
+09AF  F8             ret   m                   
+09B0  88             adc   a,b                 
+09B1  95             sub   l                   
+09B2  8B             adc   a,e                 
+09B3  73             ld    (hl),e              
+09B4  00             nop                       
+09B5  FF             rst   38h                 
+09B6  CE 95          adc   a,095h              
+09B8  8B             adc   a,e                 
+09B9  62             ld    h,d                 
+09BA  00             nop                       
+09BB  F8             ret   m                   
+09BC  90             sub   b                   
+09BD  96             sub   (hl)                
+09BE  8B             adc   a,e                 
+09BF  73             ld    (hl),e              
+09C0  00             nop                       
+09C1  FF             rst   38h                 
+09C2  D6 96          sub   096h                
+09C4  8B             adc   a,e                 
+09C5  62             ld    h,d                 
+09C6  00             nop                       
+09C7  F8             ret   m                   
+09C8  98             sbc   a,b                 
+09C9  97             sub   a                   
+09CA  8B             adc   a,e                 
+09CB  73             ld    (hl),e              
+09CC  00             nop                       
+09CD  FF             rst   38h                 
+09CE  DE 97          sbc   a,097h              
+09D0  8B             adc   a,e                 
+09D1  62             ld    h,d                 
+09D2  00             nop                       
+09D3  F8             ret   m                   
+09D4  A0             and   b                   
+09D5  98             sbc   a,b                 
+09D6  8B             adc   a,e                 
+09D7  73             ld    (hl),e              
+09D8  00             nop                       
+09D9  FF             rst   38h                 
+09DA  E6 98          and   098h                
+09DC  8B             adc   a,e                 
+09DD  62             ld    h,d                 
+09DE  00             nop                       
+09DF  F8             ret   m                   
+09E0  A8             xor   b                   
+09E1  9A             sbc   a,d                 
+09E2  8B             adc   a,e                 
+09E3  73             ld    (hl),e              
+09E4  00             nop                       
+09E5  FF             rst   38h                 
+09E6  EE 9A          xor   09ah                
+09E8  8B             adc   a,e                 
+09E9  62             ld    h,d                 
+09EA  00             nop                       
+09EB  F8             ret   m                   
+09EC  B0             or    b                   
+09ED  99             sbc   a,c                 
+09EE  8B             adc   a,e                 
+09EF  73             ld    (hl),e              
+09F0  00             nop                       
+09F1  FF             rst   38h                 
+09F2  F6 99          or    099h                
+09F4  8B             adc   a,e                 
+09F5  62             ld    h,d                 
+09F6  00             nop                       
+09F7  F8             ret   m                   
+09F8  B8             cp    b                   
+09F9  93             sub   e                   
+09FA  20 8B          jr    nz,$-115            
+09FC  73             ld    (hl),e              
+09FD  00             nop                       
+09FE  FF             rst   38h                 
+09FF  FE 93          cp    093h                
+0A01  20 8B          jr    nz,$-115            
+0A03  62             ld    h,d                 
+0A04  00             nop                       
+0A05  C7             rst   0                   
+0A06  04             inc   b                   
+0A07  9B             sbc   a,e                 
+0A08  64             ld    h,h                 
+0A09  00             nop                       
+0A0A  C7             rst   0                   
+0A0B  05             dec   b                   
+0A0C  9C             sbc   a,h                 
+0A0D  64             ld    h,h                 
+0A0E  00             nop                       
+0A0F  CF             rst   8                   
+0A10  09             add   hl,bc               
+0A11  94             sub   h                   
+0A12  83             add   a,e                 
+0A13  2C             inc   l                   
+0A14  70             ld    (hl),b              
+0A15  00             nop                       
+0A16  FF             rst   38h                 
+0A17  27             daa                       
+0A18  44             ld    b,h                 
+0A19  41             ld    b,c                 
+0A1A  41             ld    b,c                 
+0A1B  00             nop                       
+0A1C  FF             rst   38h                 
+0A1D  2F             cpl                       
+0A1E  93             sub   e                   
+0A1F  4C             ld    c,h                 
+0A20  00             nop                       
+0A21  FF             rst   38h                 
+0A22  3F             ccf                       
+0A23  43             ld    b,e                 
+0A24  43             ld    b,e                 
+0A25  46             ld    b,(hl)              
+0A26  00             nop                       
+0A27  FF             rst   38h                 
+0A28  37             scf                       
+0A29  53             ld    d,e                 
+0A2A  43             ld    b,e                 
+0A2B  46             ld    b,(hl)              
+0A2C  00             nop                       
+0A2D  FF             rst   38h                 
+0A2E  00             nop                       
+0A2F  4E             ld    c,(hl)              
+0A30  4F             ld    c,a                 
+0A31  50             ld    d,b                 
+0A32  00             nop                       
+0A33  FF             rst   38h                 
+0A34  F3             di                        
+0A35  44             ld    b,h                 
+0A36  49             ld    c,c                 
+0A37  00             nop                       
+0A38  FF             rst   38h                 
+0A39  FB             ei                        
+0A3A  45             ld    b,l                 
+0A3B  49             ld    c,c                 
+0A3C  00             nop                       
+0A3D  CF             rst   8                   
+0A3E  03             inc   bc                  
+0A3F  9B             sbc   a,e                 
+0A40  70             ld    (hl),b              
+0A41  00             nop                       
+0A42  CF             rst   8                   
+0A43  0B             dec   bc                  
+0A44  9C             sbc   a,h                 
+0A45  70             ld    (hl),b              
+0A46  00             nop                       
+0A47  FF             rst   38h                 
+0A48  07             rlca                      
+0A49  9D             sbc   a,l                 
+0A4A  43             ld    b,e                 
+0A4B  41             ld    b,c                 
+0A4C  00             nop                       
+0A4D  FF             rst   38h                 
+0A4E  17             rla                       
+0A4F  9D             sbc   a,l                 
+0A50  41             ld    b,c                 
+0A51  00             nop                       
+0A52  FF             rst   38h                 
+0A53  0F             rrca                      
+0A54  9E             sbc   a,(hl)              
+0A55  43             ld    b,e                 
+0A56  41             ld    b,c                 
+0A57  00             nop                       
+0A58  FF             rst   38h                 
+0A59  1F             rra                       
+0A5A  9E             sbc   a,(hl)              
+0A5B  41             ld    b,c                 
+0A5C  00             nop                       
+0A5D  FF             rst   38h                 
+0A5E  C3 9F 77       jp    0779fh              
+0A61  00             nop                       
+0A62  C7             rst   0                   
+0A63  C2 9F 63       jp    nz,0639fh           
+0A66  2C             inc   l                   
+0A67  77             ld    (hl),a              
+0A68  00             nop                       
+0A69  FF             rst   38h                 
+0A6A  18 A0          jr    $-94                
+0A6C  72             ld    (hl),d              
+0A6D  00             nop                       
+0A6E  FF             rst   38h                 
+0A6F  38 A0          jr    c,$-94              
+0A71  43             ld    b,e                 
+0A72  2C             inc   l                   
+0A73  72             ld    (hl),d              
+0A74  00             nop                       
+0A75  FF             rst   38h                 
+0A76  30 A0          jr    nc,$-94             
+0A78  4E             ld    c,(hl)              
+0A79  43             ld    b,e                 
+0A7A  2C             inc   l                   
+0A7B  72             ld    (hl),d              
+0A7C  00             nop                       
+0A7D  FF             rst   38h                 
+0A7E  28 A0          jr    z,$-94              
+0A80  5A             ld    e,d                 
+0A81  2C             inc   l                   
+0A82  72             ld    (hl),d              
+0A83  00             nop                       
+0A84  FF             rst   38h                 
+0A85  20 A0          jr    nz,$-94             
+0A87  4E             ld    c,(hl)              
+0A88  5A             ld    e,d                 
+0A89  2C             inc   l                   
+0A8A  72             ld    (hl),d              
+0A8B  00             nop                       
+0A8C  FF             rst   38h                 
+0A8D  E9             jp    (hl)                
+0A8E  9F             sbc   a,a                 
+0A8F  88             adc   a,b                 
+0A90  00             nop                       
+0A91  FF             rst   38h                 
+0A92  10 44          djnz  $+70                
+0A94  4A             ld    c,d                 
+0A95  4E             ld    c,(hl)              
+0A96  5A             ld    e,d                 
+0A97  20 72          jr    nz,$+116            
+0A99  00             nop                       
+0A9A  FF             rst   38h                 
+0A9B  CD A1 20       call  020a1h              
+0A9E  77             ld    (hl),a              
+0A9F  00             nop                       
+0AA0  C7             rst   0                   
+0AA1  C4 A1 20       call  nz,020a1h           
+0AA4  63             ld    h,e                 
+0AA5  2C             inc   l                   
+0AA6  77             ld    (hl),a              
+0AA7  00             nop                       
+0AA8  FF             rst   38h                 
+0AA9  C9             ret                       
+0AAA  A2             and   d                   
+0AAB  00             nop                       
+0AAC  C7             rst   0                   
+0AAD  C0             ret   nz                  
+0AAE  A2             and   d                   
+0AAF  20 63          jr    nz,$+101            
+0AB1  00             nop                       
+0AB2  C7             rst   0                   
+0AB3  C7             rst   0                   
+0AB4  52             ld    d,d                 
+0AB5  53             ld    d,e                 
+0AB6  54             ld    d,h                 
+0AB7  20 6E          jr    nz,$+112            
+0AB9  00             nop                       
+0ABA  FF             rst   38h                 
+0ABB  DB A3          in    a,(0a3h)            
+0ABD  20 8B          jr    nz,$-115            
+0ABF  28 62          jr    z,$+100             
+0AC1  29             add   hl,hl               
+0AC2  00             nop                       
+0AC3  FF             rst   38h                 
+0AC4  D3 A4          out   (0a4h),a            
+0AC6  20 28          jr    nz,$+42             
+0AC8  62             ld    h,d                 
+0AC9  29             add   hl,hl               
+0ACA  8C             adc   a,h                 
+0ACB  00             nop                       
+0ACC  00             nop                       
+0ACD  3F             ccf                       
+0ACE  00             nop                       
+0ACF  F8             ret   m                   
+0AD0  00             nop                       
+0AD1  9D             sbc   a,l                 
+0AD2  43             ld    b,e                 
+0AD3  20 73          jr    nz,$+117            
+0AD5  00             nop                       
+0AD6  F8             ret   m                   
+0AD7  10 9D          djnz  $-97                
+0AD9  20 73          jr    nz,$+117            
+0ADB  00             nop                       
+0ADC  F8             ret   m                   
+0ADD  08             ex    af,af'              
+0ADE  9E             sbc   a,(hl)              
+0ADF  43             ld    b,e                 
+0AE0  20 73          jr    nz,$+117            
+0AE2  00             nop                       
+0AE3  F8             ret   m                   
+0AE4  18 9E          jr    $-96                
+0AE6  20 73          jr    nz,$+117            
+0AE8  00             nop                       
+0AE9  F8             ret   m                   
+0AEA  20 53          jr    nz,$+85             
+0AEC  4C             ld    c,h                 
+0AED  41             ld    b,c                 
+0AEE  20 73          jr    nz,$+117            
+0AF0  00             nop                       
+0AF1  F8             ret   m                   
+0AF2  28 53          jr    z,$+85              
+0AF4  52             ld    d,d                 
+0AF5  41             ld    b,c                 
+0AF6  20 73          jr    nz,$+117            
+0AF8  00             nop                       
+0AF9  F8             ret   m                   
+0AFA  38 53          jr    c,$+85              
+0AFC  52             ld    d,d                 
+0AFD  4C             ld    c,h                 
+0AFE  20 73          jr    nz,$+117            
+0B00  00             nop                       
+0B01  C0             ret   nz                  
+0B02  40             ld    b,b                 
+0B03  A5             and   l                   
+0B04  6E             ld    l,(hl)              
+0B05  2C             inc   l                   
+0B06  73             ld    (hl),e              
+0B07  00             nop                       
+0B08  C0             ret   nz                  
+0B09  C0             ret   nz                  
+0B0A  A6             and   (hl)                
+0B0B  6E             ld    l,(hl)              
+0B0C  2C             inc   l                   
+0B0D  73             ld    (hl),e              
+0B0E  00             nop                       
+0B0F  C0             ret   nz                  
+0B10  80             add   a,b                 
+0B11  A7             and   a                   
+0B12  6E             ld    l,(hl)              
+0B13  2C             inc   l                   
+0B14  73             ld    (hl),e              
+0B15  00             nop                       
+0B16  00             nop                       
+0B17  3F             ccf                       
+0B18  00             nop                       
+0B19  C7             rst   0                   
+0B1A  46             ld    b,(hl)              
+0B1B  80             add   a,b                 
+0B1C  64             ld    h,h                 
+0B1D  2C             inc   l                   
+0B1E  89             adc   a,c                 
+0B1F  62             ld    h,d                 
+0B20  29             add   hl,hl               
+0B21  00             nop                       
+0B22  F8             ret   m                   
+0B23  70             ld    (hl),b              
+0B24  80             add   a,b                 
+0B25  89             adc   a,c                 
+0B26  62             ld    h,d                 
+0B27  29             add   hl,hl               
+0B28  2C             inc   l                   
+0B29  73             ld    (hl),e              
+0B2A  00             nop                       
+0B2B  FF             rst   38h                 
+0B2C  36 80          ld    (hl),080h           
+0B2E  89             adc   a,c                 
+0B2F  62             ld    h,d                 
+0B30  29             add   hl,hl               
+0B31  2C             inc   l                   
+0B32  62             ld    h,d                 
+0B33  00             nop                       
+0B34  FF             rst   38h                 
+0B35  21 80 84       ld    hl,08480h           
+0B38  2C             inc   l                   
+0B39  77             ld    (hl),a              
+0B3A  00             nop                       
+0B3B  FF             rst   38h                 
+0B3C  2A 80 84       ld    hl,(08480h)         
+0B3F  2C             inc   l                   
+0B40  28 77          jr    z,$+121             
+0B42  29             add   hl,hl               
+0B43  00             nop                       
+0B44  FF             rst   38h                 
+0B45  22 80 28       ld    (02880h),hl         
+0B48  77             ld    (hl),a              
+0B49  29             add   hl,hl               
+0B4A  2C             inc   l                   
+0B4B  84             add   a,h                 
+0B4C  00             nop                       
+0B4D  FF             rst   38h                 
+0B4E  F9             ld    sp,hl               
+0B4F  80             add   a,b                 
+0B50  8D             adc   a,l                 
+0B51  2C             inc   l                   
+0B52  84             add   a,h                 
+0B53  00             nop                       
+0B54  FF             rst   38h                 
+0B55  E5             push  hl                  
+0B56  8E             adc   a,(hl)              
+0B57  20 84          jr    nz,$-122            
+0B59  00             nop                       
+0B5A  FF             rst   38h                 
+0B5B  E1             pop   hl                  
+0B5C  8F             adc   a,a                 
+0B5D  84             add   a,h                 
+0B5E  00             nop                       
+0B5F  FF             rst   38h                 
+0B60  E3             ex    (sp),hl             
+0B61  91             sub   c                   
+0B62  20 28          jr    nz,$+42             
+0B64  8D             adc   a,l                 
+0B65  29             add   hl,hl               
+0B66  2C             inc   l                   
+0B67  84             add   a,h                 
+0B68  00             nop                       
+0B69  FF             rst   38h                 
+0B6A  86             add   a,(hl)              
+0B6B  94             sub   h                   
+0B6C  8B             adc   a,e                 
+0B6D  89             adc   a,c                 
+0B6E  62             ld    h,d                 
+0B6F  29             add   hl,hl               
+0B70  00             nop                       
+0B71  FF             rst   38h                 
+0B72  8E             adc   a,(hl)              
+0B73  95             sub   l                   
+0B74  8B             adc   a,e                 
+0B75  89             adc   a,c                 
+0B76  62             ld    h,d                 
+0B77  29             add   hl,hl               
+0B78  00             nop                       
+0B79  FF             rst   38h                 
+0B7A  96             sub   (hl)                
+0B7B  96             sub   (hl)                
+0B7C  8B             adc   a,e                 
+0B7D  89             adc   a,c                 
+0B7E  62             ld    h,d                 
+0B7F  29             add   hl,hl               
+0B80  00             nop                       
+0B81  FF             rst   38h                 
+0B82  9E             sbc   a,(hl)              
+0B83  97             sub   a                   
+0B84  8B             adc   a,e                 
+0B85  89             adc   a,c                 
+0B86  62             ld    h,d                 
+0B87  29             add   hl,hl               
+0B88  00             nop                       
+0B89  FF             rst   38h                 
+0B8A  A6             and   (hl)                
+0B8B  98             sbc   a,b                 
+0B8C  8B             adc   a,e                 
+0B8D  89             adc   a,c                 
+0B8E  62             ld    h,d                 
+0B8F  29             add   hl,hl               
+0B90  00             nop                       
+0B91  FF             rst   38h                 
+0B92  AE             xor   (hl)                
+0B93  9A             sbc   a,d                 
+0B94  8B             adc   a,e                 
+0B95  89             adc   a,c                 
+0B96  62             ld    h,d                 
+0B97  29             add   hl,hl               
+0B98  00             nop                       
+0B99  FF             rst   38h                 
+0B9A  B6             or    (hl)                
+0B9B  99             sbc   a,c                 
+0B9C  8B             adc   a,e                 
+0B9D  89             adc   a,c                 
+0B9E  62             ld    h,d                 
+0B9F  29             add   hl,hl               
+0BA0  00             nop                       
+0BA1  FF             rst   38h                 
+0BA2  BE             cp    (hl)                
+0BA3  93             sub   e                   
+0BA4  20 8B          jr    nz,$-115            
+0BA6  89             adc   a,c                 
+0BA7  62             ld    h,d                 
+0BA8  29             add   hl,hl               
+0BA9  00             nop                       
+0BAA  FF             rst   38h                 
+0BAB  34             inc   (hl)                
+0BAC  9B             sbc   a,e                 
+0BAD  89             adc   a,c                 
+0BAE  62             ld    h,d                 
+0BAF  29             add   hl,hl               
+0BB0  00             nop                       
+0BB1  FF             rst   38h                 
+0BB2  35             dec   (hl)                
+0BB3  9C             sbc   a,h                 
+0BB4  89             adc   a,c                 
+0BB5  62             ld    h,d                 
+0BB6  29             add   hl,hl               
+0BB7  00             nop                       
+0BB8  CF             rst   8                   
+0BB9  09             add   hl,bc               
+0BBA  94             sub   h                   
+0BBB  84             add   a,h                 
+0BBC  2C             inc   l                   
+0BBD  78             ld    a,b                 
+0BBE  00             nop                       
+0BBF  FF             rst   38h                 
+0BC0  23             inc   hl                  
+0BC1  9B             sbc   a,e                 
+0BC2  84             add   a,h                 
+0BC3  00             nop                       
+0BC4  FF             rst   38h                 
+0BC5  2B             dec   hl                  
+0BC6  9C             sbc   a,h                 
+0BC7  84             add   a,h                 
+0BC8  00             nop                       
+0BC9  FF             rst   38h                 
+0BCA  E9             jp    (hl)                
+0BCB  9F             sbc   a,a                 
+0BCC  89             adc   a,c                 
+0BCD  00             nop                       
+0BCE  FF             rst   38h                 
+0BCF  CB 7A          bit   7,d                 
+0BD1  FF             rst   38h                 
+0BD2  06 9D          ld    b,09dh              
+0BD4  43             ld    b,e                 
+0BD5  20 89          jr    nz,$-117            
+0BD7  76             halt                      
+0BD8  29             add   hl,hl               
+0BD9  00             nop                       
+0BDA  FF             rst   38h                 
+0BDB  CB 7A          bit   7,d                 
+0BDD  FF             rst   38h                 
+0BDE  16 9E          ld    d,09eh              
+0BE0  43             ld    b,e                 
+0BE1  20 89          jr    nz,$-117            
+0BE3  76             halt                      
+0BE4  29             add   hl,hl               
+0BE5  00             nop                       
+0BE6  FF             rst   38h                 
+0BE7  CB 7A          bit   7,d                 
+0BE9  C7             rst   0                   
+0BEA  46             ld    b,(hl)              
+0BEB  A5             and   l                   
+0BEC  6E             ld    l,(hl)              
+0BED  2C             inc   l                   
+0BEE  89             adc   a,c                 
+0BEF  76             halt                      
+0BF0  29             add   hl,hl               
+0BF1  00             nop                       
+0BF2  FF             rst   38h                 
+0BF3  CB 7A          bit   7,d                 
+0BF5  C7             rst   0                   
+0BF6  C6 A6          add   a,0a6h              
+0BF8  6E             ld    l,(hl)              
+0BF9  2C             inc   l                   
+0BFA  89             adc   a,c                 
+0BFB  76             halt                      
+0BFC  29             add   hl,hl               
+0BFD  00             nop                       
+0BFE  FF             rst   38h                 
+0BFF  CB 7A          bit   7,d                 
+0C01  C7             rst   0                   
+0C02  86             add   a,(hl)              
+0C03  A7             and   a                   
+0C04  6E             ld    l,(hl)              
+0C05  2C             inc   l                   
+0C06  89             adc   a,c                 
+0C07  76             halt                      
+0C08  29             add   hl,hl               
+0C09  00             nop                       
+0C0A  00             nop                       
+0C0B  3F             ccf                       
+0C0C  00             nop                       
+0C0D  C7             rst   0                   
+0C0E  46             ld    b,(hl)              
+0C0F  80             add   a,b                 
+0C10  64             ld    h,h                 
+0C11  2C             inc   l                   
+0C12  8A             adc   a,d                 
+0C13  62             ld    h,d                 
+0C14  29             add   hl,hl               
+0C15  00             nop                       
+0C16  F8             ret   m                   
+0C17  70             ld    (hl),b              
+0C18  80             add   a,b                 
+0C19  8A             adc   a,d                 
+0C1A  62             ld    h,d                 
+0C1B  29             add   hl,hl               
+0C1C  2C             inc   l                   
+0C1D  73             ld    (hl),e              
+0C1E  00             nop                       
+0C1F  FF             rst   38h                 
+0C20  36 80          ld    (hl),080h           
+0C22  8A             adc   a,d                 
+0C23  62             ld    h,d                 
+0C24  29             add   hl,hl               
+0C25  2C             inc   l                   
+0C26  62             ld    h,d                 
+0C27  00             nop                       
+0C28  FF             rst   38h                 
+0C29  21 80 85       ld    hl,08580h           
+0C2C  2C             inc   l                   
+0C2D  77             ld    (hl),a              
+0C2E  00             nop                       
+0C2F  FF             rst   38h                 
+0C30  2A 80 85       ld    hl,(08580h)         
+0C33  2C             inc   l                   
+0C34  28 77          jr    z,$+121             
+0C36  29             add   hl,hl               
+0C37  00             nop                       
+0C38  FF             rst   38h                 
+0C39  22 80 28       ld    (02880h),hl         
+0C3C  77             ld    (hl),a              
+0C3D  29             add   hl,hl               
+0C3E  2C             inc   l                   
+0C3F  85             add   a,l                 
+0C40  00             nop                       
+0C41  FF             rst   38h                 
+0C42  F9             ld    sp,hl               
+0C43  80             add   a,b                 
+0C44  8D             adc   a,l                 
+0C45  2C             inc   l                   
+0C46  85             add   a,l                 
+0C47  00             nop                       
+0C48  FF             rst   38h                 
+0C49  E5             push  hl                  
+0C4A  8E             adc   a,(hl)              
+0C4B  20 85          jr    nz,$-121            
+0C4D  00             nop                       
+0C4E  FF             rst   38h                 
+0C4F  E1             pop   hl                  
+0C50  8F             adc   a,a                 
+0C51  85             add   a,l                 
+0C52  00             nop                       
+0C53  FF             rst   38h                 
+0C54  E3             ex    (sp),hl             
+0C55  91             sub   c                   
+0C56  20 28          jr    nz,$+42             
+0C58  8D             adc   a,l                 
+0C59  29             add   hl,hl               
+0C5A  2C             inc   l                   
+0C5B  85             add   a,l                 
+0C5C  00             nop                       
+0C5D  FF             rst   38h                 
+0C5E  86             add   a,(hl)              
+0C5F  94             sub   h                   
+0C60  8B             adc   a,e                 
+0C61  8A             adc   a,d                 
+0C62  62             ld    h,d                 
+0C63  29             add   hl,hl               
+0C64  00             nop                       
+0C65  FF             rst   38h                 
+0C66  8E             adc   a,(hl)              
+0C67  95             sub   l                   
+0C68  8B             adc   a,e                 
+0C69  8A             adc   a,d                 
+0C6A  62             ld    h,d                 
+0C6B  29             add   hl,hl               
+0C6C  00             nop                       
+0C6D  FF             rst   38h                 
+0C6E  96             sub   (hl)                
+0C6F  96             sub   (hl)                
+0C70  8B             adc   a,e                 
+0C71  8A             adc   a,d                 
+0C72  62             ld    h,d                 
+0C73  29             add   hl,hl               
+0C74  00             nop                       
+0C75  FF             rst   38h                 
+0C76  9E             sbc   a,(hl)              
+0C77  97             sub   a                   
+0C78  8B             adc   a,e                 
+0C79  8A             adc   a,d                 
+0C7A  62             ld    h,d                 
+0C7B  29             add   hl,hl               
+0C7C  00             nop                       
+0C7D  FF             rst   38h                 
+0C7E  A6             and   (hl)                
+0C7F  98             sbc   a,b                 
+0C80  8B             adc   a,e                 
+0C81  8A             adc   a,d                 
+0C82  62             ld    h,d                 
+0C83  29             add   hl,hl               
+0C84  00             nop                       
+0C85  FF             rst   38h                 
+0C86  AE             xor   (hl)                
+0C87  9A             sbc   a,d                 
+0C88  8B             adc   a,e                 
+0C89  8A             adc   a,d                 
+0C8A  62             ld    h,d                 
+0C8B  29             add   hl,hl               
+0C8C  00             nop                       
+0C8D  FF             rst   38h                 
+0C8E  B6             or    (hl)                
+0C8F  99             sbc   a,c                 
+0C90  8B             adc   a,e                 
+0C91  8A             adc   a,d                 
+0C92  62             ld    h,d                 
+0C93  29             add   hl,hl               
+0C94  00             nop                       
+0C95  FF             rst   38h                 
+0C96  BE             cp    (hl)                
+0C97  93             sub   e                   
+0C98  20 8B          jr    nz,$-115            
+0C9A  8A             adc   a,d                 
+0C9B  62             ld    h,d                 
+0C9C  29             add   hl,hl               
+0C9D  00             nop                       
+0C9E  FF             rst   38h                 
+0C9F  34             inc   (hl)                
+0CA0  9B             sbc   a,e                 
+0CA1  8A             adc   a,d                 
+0CA2  62             ld    h,d                 
+0CA3  29             add   hl,hl               
+0CA4  00             nop                       
+0CA5  FF             rst   38h                 
+0CA6  35             dec   (hl)                
+0CA7  9C             sbc   a,h                 
+0CA8  8A             adc   a,d                 
+0CA9  62             ld    h,d                 
+0CAA  29             add   hl,hl               
+0CAB  00             nop                       
+0CAC  CF             rst   8                   
+0CAD  09             add   hl,bc               
+0CAE  94             sub   h                   
+0CAF  85             add   a,l                 
+0CB0  2C             inc   l                   
+0CB1  79             ld    a,c                 
+0CB2  00             nop                       
+0CB3  FF             rst   38h                 
+0CB4  23             inc   hl                  
+0CB5  9B             sbc   a,e                 
+0CB6  85             add   a,l                 
+0CB7  00             nop                       
+0CB8  FF             rst   38h                 
+0CB9  2B             dec   hl                  
+0CBA  9C             sbc   a,h                 
+0CBB  85             add   a,l                 
+0CBC  00             nop                       
+0CBD  FF             rst   38h                 
+0CBE  E9             jp    (hl)                
+0CBF  9F             sbc   a,a                 
+0CC0  8A             adc   a,d                 
+0CC1  00             nop                       
+0CC2  FF             rst   38h                 
+0CC3  CB 7A          bit   7,d                 
+0CC5  FF             rst   38h                 
+0CC6  06 9D          ld    b,09dh              
+0CC8  43             ld    b,e                 
+0CC9  20 8A          jr    nz,$-116            
+0CCB  76             halt                      
+0CCC  29             add   hl,hl               
+0CCD  00             nop                       
+0CCE  FF             rst   38h                 
+0CCF  CB 7A          bit   7,d                 
+0CD1  FF             rst   38h                 
+0CD2  16 9E          ld    d,09eh              
+0CD4  43             ld    b,e                 
+0CD5  20 8A          jr    nz,$-116            
+0CD7  76             halt                      
+0CD8  29             add   hl,hl               
+0CD9  00             nop                       
+0CDA  FF             rst   38h                 
+0CDB  CB 7A          bit   7,d                 
+0CDD  C7             rst   0                   
+0CDE  46             ld    b,(hl)              
+0CDF  A5             and   l                   
+0CE0  6E             ld    l,(hl)              
+0CE1  2C             inc   l                   
+0CE2  8A             adc   a,d                 
+0CE3  76             halt                      
+0CE4  29             add   hl,hl               
+0CE5  00             nop                       
+0CE6  FF             rst   38h                 
+0CE7  CB 7A          bit   7,d                 
+0CE9  C7             rst   0                   
+0CEA  C6 A6          add   a,0a6h              
+0CEC  6E             ld    l,(hl)              
+0CED  2C             inc   l                   
+0CEE  8A             adc   a,d                 
+0CEF  76             halt                      
+0CF0  29             add   hl,hl               
+0CF1  00             nop                       
+0CF2  FF             rst   38h                 
+0CF3  CB 7A          bit   7,d                 
+0CF5  C7             rst   0                   
+0CF6  86             add   a,(hl)              
+0CF7  A7             and   a                   
+0CF8  6E             ld    l,(hl)              
+0CF9  2C             inc   l                   
+0CFA  8A             adc   a,d                 
+0CFB  76             halt                      
+0CFC  29             add   hl,hl               
+0CFD  00             nop                       
+0CFE  00             nop                       
+0CFF  3F             ccf                       
+0D00  00             nop                       
+0D01  FF             rst   38h                 
+0D02  57             ld    d,a                 
+0D03  80             add   a,b                 
+0D04  8B             adc   a,e                 
+0D05  49             ld    c,c                 
+0D06  00             nop                       
+0D07  FF             rst   38h                 
+0D08  5F             ld    e,a                 
+0D09  80             add   a,b                 
+0D0A  8B             adc   a,e                 
+0D0B  52             ld    d,d                 
+0D0C  00             nop                       
+0D0D  FF             rst   38h                 
+0D0E  47             ld    b,a                 
+0D0F  80             add   a,b                 
+0D10  49             ld    c,c                 
+0D11  8C             adc   a,h                 
+0D12  00             nop                       
+0D13  FF             rst   38h                 
+0D14  4F             ld    c,a                 
+0D15  80             add   a,b                 
+0D16  52             ld    d,d                 
+0D17  8C             adc   a,h                 
+0D18  00             nop                       
+0D19  CF             rst   8                   
+0D1A  4B             ld    c,e                 
+0D1B  80             add   a,b                 
+0D1C  70             ld    (hl),b              
+0D1D  28 77          jr    z,$+121             
+0D1F  29             add   hl,hl               
+0D20  00             nop                       
+0D21  FF             rst   38h                 
+0D22  A0             and   b                   
+0D23  92             sub   d                   
+0D24  49             ld    c,c                 
+0D25  00             nop                       
+0D26  FF             rst   38h                 
+0D27  B0             or    b                   
+0D28  92             sub   d                   
+0D29  49             ld    c,c                 
+0D2A  52             ld    d,d                 
+0D2B  00             nop                       
+0D2C  FF             rst   38h                 
+0D2D  A8             xor   b                   
+0D2E  92             sub   d                   
+0D2F  44             ld    b,h                 
+0D30  00             nop                       
+0D31  FF             rst   38h                 
+0D32  B8             cp    b                   
+0D33  92             sub   d                   
+0D34  44             ld    b,h                 
+0D35  52             ld    d,d                 
+0D36  00             nop                       
+0D37  FF             rst   38h                 
+0D38  A1             and   c                   
+0D39  93             sub   e                   
+0D3A  49             ld    c,c                 
+0D3B  00             nop                       
+0D3C  FF             rst   38h                 
+0D3D  B1             or    c                   
+0D3E  93             sub   e                   
+0D3F  49             ld    c,c                 
+0D40  52             ld    d,d                 
+0D41  00             nop                       
+0D42  FF             rst   38h                 
+0D43  A9             xor   c                   
+0D44  93             sub   e                   
+0D45  44             ld    b,h                 
+0D46  00             nop                       
+0D47  FF             rst   38h                 
+0D48  B9             cp    c                   
+0D49  93             sub   e                   
+0D4A  44             ld    b,h                 
+0D4B  52             ld    d,d                 
+0D4C  00             nop                       
+0D4D  FF             rst   38h                 
+0D4E  44             ld    b,h                 
+0D4F  4E             ld    c,(hl)              
+0D50  45             ld    b,l                 
+0D51  47             ld    b,a                 
+0D52  00             nop                       
+0D53  FF             rst   38h                 
+0D54  46             ld    b,(hl)              
+0D55  49             ld    c,c                 
+0D56  4D             ld    c,l                 
+0D57  20 30          jr    nz,$+50             
+0D59  00             nop                       
+0D5A  FF             rst   38h                 
+0D5B  56             ld    d,(hl)              
+0D5C  49             ld    c,c                 
+0D5D  4D             ld    c,l                 
+0D5E  20 31          jr    nz,$+51             
+0D60  00             nop                       
+0D61  FF             rst   38h                 
+0D62  5E             ld    e,(hl)              
+0D63  49             ld    c,c                 
+0D64  4D             ld    c,l                 
+0D65  20 32          jr    nz,$+52             
+0D67  00             nop                       
+0D68  CF             rst   8                   
+0D69  4A             ld    c,d                 
+0D6A  95             sub   l                   
+0D6B  83             add   a,e                 
+0D6C  2C             inc   l                   
+0D6D  70             ld    (hl),b              
+0D6E  00             nop                       
+0D6F  CF             rst   8                   
+0D70  42             ld    b,d                 
+0D71  97             sub   a                   
+0D72  83             add   a,e                 
+0D73  2C             inc   l                   
+0D74  70             ld    (hl),b              
+0D75  00             nop                       
+0D76  FF             rst   38h                 
+0D77  6F             ld    l,a                 
+0D78  9D             sbc   a,l                 
+0D79  44             ld    b,h                 
+0D7A  00             nop                       
+0D7B  FF             rst   38h                 
+0D7C  67             ld    h,a                 
+0D7D  9E             sbc   a,(hl)              
+0D7E  44             ld    b,h                 
+0D7F  00             nop                       
+0D80  FF             rst   38h                 
+0D81  4D             ld    c,l                 
+0D82  A2             and   d                   
+0D83  49             ld    c,c                 
+0D84  00             nop                       
+0D85  FF             rst   38h                 
+0D86  45             ld    b,l                 
+0D87  A2             and   d                   
+0D88  4E             ld    c,(hl)              
+0D89  00             nop                       
+0D8A  C7             rst   0                   
+0D8B  40             ld    b,b                 
+0D8C  A3             and   e                   
+0D8D  20 64          jr    nz,$+102            
+0D8F  2C             inc   l                   
+0D90  28 43          jr    z,$+69              
+0D92  29             add   hl,hl               
+0D93  00             nop                       
+0D94  FF             rst   38h                 
+0D95  A2             and   d                   
+0D96  A3             and   e                   
+0D97  49             ld    c,c                 
+0D98  00             nop                       
+0D99  FF             rst   38h                 
+0D9A  B2             or    d                   
+0D9B  A3             and   e                   
+0D9C  49             ld    c,c                 
+0D9D  52             ld    d,d                 
+0D9E  00             nop                       
+0D9F  FF             rst   38h                 
+0DA0  AA             xor   d                   
+0DA1  A3             and   e                   
+0DA2  44             ld    b,h                 
+0DA3  00             nop                       
+0DA4  FF             rst   38h                 
+0DA5  BA             cp    d                   
+0DA6  A3             and   e                   
+0DA7  44             ld    b,h                 
+0DA8  52             ld    d,d                 
+0DA9  00             nop                       
+0DAA  C7             rst   0                   
+0DAB  41             ld    b,c                 
+0DAC  A4             and   h                   
+0DAD  20 28          jr    nz,$+42             
+0DAF  43             ld    b,e                 
+0DB0  29             add   hl,hl               
+0DB1  2C             inc   l                   
+0DB2  64             ld    h,h                 
+0DB3  00             nop                       
+0DB4  FF             rst   38h                 
+0DB5  A3             and   e                   
+0DB6  A4             and   h                   
+0DB7  49             ld    c,c                 
+0DB8  00             nop                       
+0DB9  FF             rst   38h                 
+0DBA  B3             or    e                   
+0DBB  4F             ld    c,a                 
+0DBC  54             ld    d,h                 
+0DBD  49             ld    c,c                 
+0DBE  52             ld    d,d                 
+0DBF  00             nop                       
+0DC0  FF             rst   38h                 
+0DC1  AB             xor   e                   
+0DC2  A4             and   h                   
+0DC3  44             ld    b,h                 
+0DC4  00             nop                       
+0DC5  FF             rst   38h                 
+0DC6  BB             cp    e                   
+0DC7  4F             ld    c,a                 
+0DC8  54             ld    d,h                 
+0DC9  44             ld    b,h                 
+0DCA  52             ld    d,d                 
+0DCB  00             nop                       
+0DCC  00             nop                       
+0DCD  3F             ccf                       
+0DCE  00             nop                       
+0DCF  FF             rst   38h                 
+0DD0  C3 8D 07       jp    0078dh              
+0DD3  C7             rst   0                   
+0DD4  C2 88 07       jp    nz,00788h           
+0DD7  FF             rst   38h                 
+0DD8  18 9B          jr    $-99                
+0DDA  07             rlca                      
+0DDB  FF             rst   38h                 
+0DDC  E9             jp    (hl)                
+0DDD  75             ld    (hl),l              
+0DDE  07             rlca                      
+0DDF  FF             rst   38h                 
+0DE0  CD B1 07       call  007b1h              
+0DE3  C7             rst   0                   
+0DE4  C4 AC 07       call  nz,007ach           
+0DE7  FF             rst   38h                 
+0DE8  C9             ret                       
+0DE9  CF             rst   8                   
+0DEA  07             rlca                      
+0DEB  C7             rst   0                   
+0DEC  C0             ret   nz                  
+0DED  CA 07 FF       jp    z,0ff07h            
+0DF0  10 92          djnz  $-108               
+0DF2  07             rlca                      
+0DF3  FF             rst   38h                 
+0DF4  38 7A          jr    c,$+124             
+0DF6  07             rlca                      
+0DF7  FF             rst   38h                 
+0DF8  30 7E          jr    nc,$+128            
+0DFA  07             rlca                      
+0DFB  FF             rst   38h                 
+0DFC  28 82          jr    z,$-124             
+0DFE  07             rlca                      
+0DFF  FF             rst   38h                 
+0E00  20 86          jr    nz,$-120            
+0E02  07             rlca                      
+0E03  C7             rst   0                   
+0E04  C7             rst   0                   
+0E05  6B             ld    l,e                 
+0E06  07             rlca                      
+0E07  FF             rst   38h                 
+0E0B  FF             rst   38h                 
+0E0C  FE 5F          cp    05fh                
+0E0E  07             rlca                      
+0E0F  4D             ld    c,l                 
+0E10  4F             ld    c,a                 
+0E11  4E             ld    c,(hl)              
+0E12  5A             ld    e,d                 
+0E13  38 30          jr    c,$+50              
+0E15  20 43          jr    nz,$+69             
+0E17  6F             ld    l,a                 
+0E18  6D             ld    l,l                 
+0E19  6D             ld    l,l                 
+0E1A  61             ld    h,c                 
+0E1B  6E             ld    l,(hl)              
+0E1C  64             ld    h,h                 
+0E1D  73             ld    (hl),e              
+0E1E  3A 0A 00       ld    a,(0000ah)          
+0E21  42             ld    b,d                 
+0E22  52             ld    d,d                 
+0E23  20 30          jr    nz,$+50             
+0E25  2D             dec   l                   
+0E26  37             scf                       
+0E27  20 61          jr    nz,$+99             
+0E29  64             ld    h,h                 
+0E2A  64             ld    h,h                 
+0E2B  72             ld    (hl),d              
+0E2C  7C             ld    a,h                 
+0E2D  53             ld    d,e                 
+0E2E  65             ld    h,l                 
+0E2F  74             ld    (hl),h              
+0E30  20 62          jr    nz,$+100            
+0E32  72             ld    (hl),d              
+0E33  65             ld    h,l                 
+0E34  61             ld    h,c                 
+0E35  6B             ld    l,e                 
+0E36  70             ld    (hl),b              
+0E37  6F             ld    l,a                 
+0E38  69             ld    l,c                 
+0E39  6E             ld    l,(hl)              
+0E3A  74             ld    (hl),h              
+0E3B  20 28          jr    nz,$+42             
+0E3D  30 30          jr    nc,$+50             
+0E3F  30 30          jr    nc,$+50             
+0E41  20 63          jr    nz,$+101            
+0E43  6C             ld    l,h                 
+0E44  65             ld    h,l                 
+0E45  61             ld    h,c                 
+0E46  72             ld    (hl),d              
+0E47  73             ld    (hl),e              
+0E48  29             add   hl,hl               
+0E49  00             nop                       
+0E4A  44             ld    b,h                 
+0E4B  42             ld    b,d                 
+0E4C  7C             ld    a,h                 
+0E4D  44             ld    b,h                 
+0E4E  69             ld    l,c                 
+0E4F  73             ld    (hl),e              
+0E50  70             ld    (hl),b              
+0E51  6C             ld    l,h                 
+0E52  61             ld    h,c                 
+0E53  79             ld    a,c                 
+0E54  20 62          jr    nz,$+100            
+0E56  72             ld    (hl),d              
+0E57  65             ld    h,l                 
+0E58  61             ld    h,c                 
+0E59  6B             ld    l,e                 
+0E5A  70             ld    (hl),b              
+0E5B  6F             ld    l,a                 
+0E5C  69             ld    l,c                 
+0E5D  6E             ld    l,(hl)              
+0E5E  74             ld    (hl),h              
+0E5F  73             ld    (hl),e              
+0E60  00             nop                       
+0E61  44             ld    b,h                 
+0E62  49             ld    c,c                 
+0E63  20 66          jr    nz,$+104            
+0E65  72             ld    (hl),d              
+0E66  6F             ld    l,a                 
+0E67  6D             ld    l,l                 
+0E68  2C             inc   l                   
+0E69  5B             ld    e,e                 
+0E6A  74             ld    (hl),h              
+0E6B  6F             ld    l,a                 
+0E6C  5D             ld    e,l                 
+0E6D  7C             ld    a,h                 
+0E6E  44             ld    b,h                 
+0E6F  69             ld    l,c                 
+0E70  73             ld    (hl),e              
+0E71  61             ld    h,c                 
+0E72  73             ld    (hl),e              
+0E73  73             ld    (hl),e              
+0E74  65             ld    h,l                 
+0E75  6D             ld    l,l                 
+0E76  62             ld    h,d                 
+0E77  6C             ld    l,h                 
+0E78  65             ld    h,l                 
+0E79  20 6D          jr    nz,$+111            
+0E7B  65             ld    h,l                 
+0E7C  6D             ld    l,l                 
+0E7D  6F             ld    l,a                 
+0E7E  72             ld    (hl),d              
+0E7F  79             ld    a,c                 
+0E80  00             nop                       
+0E81  44             ld    b,h                 
+0E82  4D             ld    c,l                 
+0E83  20 66          jr    nz,$+104            
+0E85  72             ld    (hl),d              
+0E86  6F             ld    l,a                 
+0E87  6D             ld    l,l                 
+0E88  2C             inc   l                   
+0E89  5B             ld    e,e                 
+0E8A  74             ld    (hl),h              
+0E8B  6F             ld    l,a                 
+0E8C  5D             ld    e,l                 
+0E8D  7C             ld    a,h                 
+0E8E  44             ld    b,h                 
+0E8F  75             ld    (hl),l              
+0E90  6D             ld    l,l                 
+0E91  70             ld    (hl),b              
+0E92  20 6D          jr    nz,$+111            
+0E94  65             ld    h,l                 
+0E95  6D             ld    l,l                 
+0E96  6F             ld    l,a                 
+0E97  72             ld    (hl),d              
+0E98  79             ld    a,c                 
+0E99  20 28          jr    nz,$+42             
+0E9B  48             ld    c,b                 
+0E9C  45             ld    b,l                 
+0E9D  58             ld    e,b                 
+0E9E  2F             cpl                       
+0E9F  41             ld    b,c                 
+0EA0  53             ld    d,e                 
+0EA1  43             ld    b,e                 
+0EA2  49             ld    c,c                 
+0EA3  49             ld    c,c                 
+0EA4  29             add   hl,hl               
+0EA5  00             nop                       
+0EA6  44             ld    b,h                 
+0EA7  52             ld    d,d                 
+0EA8  7C             ld    a,h                 
+0EA9  44             ld    b,h                 
+0EAA  69             ld    l,c                 
+0EAB  73             ld    (hl),e              
+0EAC  70             ld    (hl),b              
+0EAD  6C             ld    l,h                 
+0EAE  61             ld    h,c                 
+0EAF  79             ld    a,c                 
+0EB0  20 5A          jr    nz,$+92             
+0EB2  38 30          jr    c,$+50              
+0EB4  20 72          jr    nz,$+116            
+0EB6  65             ld    h,l                 
+0EB7  67             ld    h,a                 
+0EB8  69             ld    l,c                 
+0EB9  73             ld    (hl),e              
+0EBA  74             ld    (hl),h              
+0EBB  65             ld    h,l                 
+0EBC  72             ld    (hl),d              
+0EBD  73             ld    (hl),e              
+0EBE  00             nop                       
+0EBF  45             ld    b,l                 
+0EC0  20 61          jr    nz,$+99             
+0EC2  64             ld    h,h                 
+0EC3  64             ld    h,h                 
+0EC4  72             ld    (hl),d              
+0EC5  7C             ld    a,h                 
+0EC6  45             ld    b,l                 
+0EC7  64             ld    h,h                 
+0EC8  69             ld    l,c                 
+0EC9  74             ld    (hl),h              
+0ECA  20 6D          jr    nz,$+111            
+0ECC  65             ld    h,l                 
+0ECD  6D             ld    l,l                 
+0ECE  6F             ld    l,a                 
+0ECF  72             ld    (hl),d              
+0ED0  79             ld    a,c                 
+0ED1  00             nop                       
+0ED2  46             ld    b,(hl)              
+0ED3  20 66          jr    nz,$+104            
+0ED5  72             ld    (hl),d              
+0ED6  6F             ld    l,a                 
+0ED7  6D             ld    l,l                 
+0ED8  2C             inc   l                   
+0ED9  74             ld    (hl),h              
+0EDA  6F             ld    l,a                 
+0EDB  20 76          jr    nz,$+120            
+0EDD  61             ld    h,c                 
+0EDE  6C             ld    l,h                 
+0EDF  75             ld    (hl),l              
+0EE0  65             ld    h,l                 
+0EE1  7C             ld    a,h                 
+0EE2  46             ld    b,(hl)              
+0EE3  69             ld    l,c                 
+0EE4  6C             ld    l,h                 
+0EE5  6C             ld    l,h                 
+0EE6  20 6D          jr    nz,$+111            
+0EE8  65             ld    h,l                 
+0EE9  6D             ld    l,l                 
+0EEA  6F             ld    l,a                 
+0EEB  72             ld    (hl),d              
+0EEC  79             ld    a,c                 
+0EED  00             nop                       
+0EEE  47             ld    b,a                 
+0EEF  20 5B          jr    nz,$+93             
+0EF1  61             ld    h,c                 
+0EF2  64             ld    h,h                 
+0EF3  64             ld    h,h                 
+0EF4  72             ld    (hl),d              
+0EF5  5D             ld    e,l                 
+0EF6  7C             ld    a,h                 
+0EF7  47             ld    b,a                 
+0EF8  6F             ld    l,a                 
+0EF9  20 28          jr    nz,$+42             
+0EFB  65             ld    h,l                 
+0EFC  78             ld    a,b                 
+0EFD  65             ld    h,l                 
+0EFE  63             ld    h,e                 
+0EFF  75             ld    (hl),l              
+0F00  74             ld    (hl),h              
+0F01  65             ld    h,l                 
+0F02  29             add   hl,hl               
+0F03  00             nop                       
+0F04  49             ld    c,c                 
+0F05  20 70          jr    nz,$+114            
+0F07  6F             ld    l,a                 
+0F08  72             ld    (hl),d              
+0F09  74             ld    (hl),h              
+0F0A  7C             ld    a,h                 
+0F0B  52             ld    d,d                 
+0F0C  65             ld    h,l                 
+0F0D  61             ld    h,c                 
+0F0E  64             ld    h,h                 
+0F0F  2F             cpl                       
+0F10  44             ld    b,h                 
+0F11  69             ld    l,c                 
+0F12  73             ld    (hl),e              
+0F13  70             ld    (hl),b              
+0F14  6C             ld    l,h                 
+0F15  61             ld    h,c                 
+0F16  79             ld    a,c                 
+0F17  20 49          jr    nz,$+75             
+0F19  2F             cpl                       
+0F1A  4F             ld    c,a                 
+0F1B  20 70          jr    nz,$+114            
+0F1D  6F             ld    l,a                 
+0F1E  72             ld    (hl),d              
+0F1F  74             ld    (hl),h              
+0F20  00             nop                       
+0F21  4C             ld    c,h                 
+0F22  7C             ld    a,h                 
+0F23  4C             ld    c,h                 
+0F24  6F             ld    l,a                 
+0F25  61             ld    h,c                 
+0F26  64             ld    h,h                 
+0F27  20 2E          jr    nz,$+48             
+0F29  48             ld    c,b                 
+0F2A  45             ld    b,l                 
+0F2B  58             ld    e,b                 
+0F2C  20 66          jr    nz,$+104            
+0F2E  69             ld    l,c                 
+0F2F  6C             ld    l,h                 
+0F30  65             ld    h,l                 
+0F31  00             nop                       
+0F32  4F             ld    c,a                 
+0F33  20 70          jr    nz,$+114            
+0F35  6F             ld    l,a                 
+0F36  72             ld    (hl),d              
+0F37  74             ld    (hl),h              
+0F38  20 76          jr    nz,$+120            
+0F3A  61             ld    h,c                 
+0F3B  6C             ld    l,h                 
+0F3C  75             ld    (hl),l              
+0F3D  65             ld    h,l                 
+0F3E  7C             ld    a,h                 
+0F3F  57             ld    d,a                 
+0F40  72             ld    (hl),d              
+0F41  69             ld    l,c                 
+0F42  74             ld    (hl),h              
+0F43  65             ld    h,l                 
+0F44  20 49          jr    nz,$+75             
+0F46  2F             cpl                       
+0F47  4F             ld    c,a                 
+0F48  20 70          jr    nz,$+114            
+0F4A  6F             ld    l,a                 
+0F4B  72             ld    (hl),d              
+0F4C  74             ld    (hl),h              
+0F4D  00             nop                       
+0F4E  54             ld    d,h                 
+0F4F  7C             ld    a,h                 
+0F50  54             ld    d,h                 
+0F51  72             ld    (hl),d              
+0F52  61             ld    h,c                 
+0F53  63             ld    h,e                 
+0F54  65             ld    h,l                 
+0F55  20 28          jr    nz,$+42             
+0F57  73             ld    (hl),e              
+0F58  69             ld    l,c                 
+0F59  6E             ld    l,(hl)              
+0F5A  67             ld    h,a                 
+0F5B  6C             ld    l,h                 
+0F5C  65             ld    h,l                 
+0F5D  2D             dec   l                   
+0F5E  73             ld    (hl),e              
+0F5F  74             ld    (hl),h              
+0F60  65             ld    h,l                 
+0F61  70             ld    (hl),b              
+0F62  29             add   hl,hl               
+0F63  00             nop                       
+0F64  41             ld    b,c                 
+0F65  46             ld    b,(hl)              
+0F66  2C             inc   l                   
+0F67  42             ld    b,d                 
+0F68  43             ld    b,e                 
+0F69  2C             inc   l                   
+0F6A  44             ld    b,h                 
+0F6B  45             ld    b,l                 
+0F6C  2C             inc   l                   
+0F6D  48             ld    c,b                 
+0F6E  4C             ld    c,h                 
+0F6F  00             nop                       
+0F70  49             ld    c,c                 
+0F71  58             ld    e,b                 
+0F72  2C             inc   l                   
+0F73  49             ld    c,c                 
+0F74  59             ld    e,c                 
+0F75  2C             inc   l                   
+0F76  53             ld    d,e                 
+0F77  50             ld    d,b                 
+0F78  2C             inc   l                   
+0F79  50             ld    d,b                 
+0F7A  43             ld    b,e                 
+0F7B  20 76          jr    nz,$+120            
+0F7D  61             ld    h,c                 
+0F7E  6C             ld    l,h                 
+0F7F  75             ld    (hl),l              
+0F80  65             ld    h,l                 
+0F81  7C             ld    a,h                 
+0F82  53             ld    d,e                 
+0F83  65             ld    h,l                 
+0F84  74             ld    (hl),h              
+0F85  20 72          jr    nz,$+116            
+0F87  65             ld    h,l                 
+0F88  67             ld    h,a                 
+0F89  69             ld    l,c                 
+0F8A  73             ld    (hl),e              
+0F8B  74             ld    (hl),h              
+0F8C  65             ld    h,l                 
+0F8D  72             ld    (hl),d              
+0F8E  20 76          jr    nz,$+120            
+0F90  61             ld    h,c                 
+0F91  6C             ld    l,h                 
+0F92  75             ld    (hl),l              
+0F93  65             ld    h,l                 
+0F94  00             nop                       
+0F95  00             nop                       
+0F96  3E 03          ld    a,003h              
+0F98  D3 80          out   (080h),a            
+0F9A  D3 80          out   (080h),a            
+0F9C  3E 77          ld    a,077h              
+0F9E  D3 80          out   (080h),a            
+0FA0  3E 15          ld    a,015h              
+0FA2  D3 80          out   (080h),a            
+0FA4  C9             ret                       
+0FA5  DB 80          in    a,(080h)            
+0FA7  E6 01          and   001h                
+0FA9  C8             ret   z                   
+0FAA  DB 81          in    a,(081h)            
+0FAC  C9             ret                       
+0FAD  F5             push  af                  
+0FAE  DB 80          in    a,(080h)            
+0FB0  E6 02          and   002h                
+0FB2  28 FA          jr    z,$-4               
+0FB4  F1             pop   af                  
+0FB5  D3 81          out   (081h),a            
+0FB7  C9             ret                       

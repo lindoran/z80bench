@@ -16,6 +16,27 @@ static void copy_text(char *dst, size_t dst_sz, const char *src) {
     snprintf(dst, dst_sz, "%s", src);
 }
 
+static void unescape_newlines(char *s) {
+    char *d = s;
+    while (*s) {
+        if (*s == '\\' && *(s+1) == 'n') {
+            *d++ = '\n';
+            s += 2;
+        } else {
+            *d++ = *s++;
+        }
+    }
+    *d = '\0';
+}
+
+static void trim_trailing_newlines(char *s) {
+    if (!s) return;
+    int len = strlen(s);
+    while (len > 0 && (s[len-1] == '\n' || s[len-1] == '\r')) {
+        s[--len] = '\0';
+    }
+}
+
 typedef struct {
     int offset;
     char name[DISASM_LABEL_MAX];
@@ -56,13 +77,17 @@ AnnData *annotate_load(const char *path) {
         return NULL;
     }
 
-    /* Defaults */
-
     char line[512];
     char section[64] = "";
+    char *last_text = NULL;
+    size_t last_text_sz = 0;
     
     while (fgets(line, sizeof(line), fp)) {
-        if (line[0] == '#' || line[0] == ';' || line[0] == '\n' || line[0] == '\r') continue;
+        if (line[0] == '#' || line[0] == ';') {
+            if (last_text) trim_trailing_newlines(last_text);
+            last_text = NULL;
+            continue;
+        }
 
         char *nl = strchr(line, '\n');
         if (nl) *nl = '\0';
@@ -70,17 +95,20 @@ AnnData *annotate_load(const char *path) {
         if (nl) *nl = '\0';
 
         if (line[0] == '[' && strchr(line, ']')) {
+            if (last_text) trim_trailing_newlines(last_text);
             char *end = strchr(line, ']');
             int len = end - line - 1;
             if (len > 0 && len < (int)sizeof(section)) {
                 strncpy(section, line + 1, len);
                 section[len] = '\0';
             }
+            last_text = NULL;
             continue;
         }
 
         char *eq = strchr(line, '=');
         if (eq) {
+            if (last_text) trim_trailing_newlines(last_text);
             *eq = '\0';
             char *key = line;
             char *val = eq + 1;
@@ -88,6 +116,8 @@ AnnData *annotate_load(const char *path) {
             char *ke = key + strlen(key) - 1;
             while (ke > key && isspace(*ke)) { *ke = '\0'; ke--; }
             while (*val && isspace(*val)) val++;
+
+            last_text = NULL;
 
             if (strcmp(section, "meta") == 0) {
                 if (strcmp(key, "name") == 0) copy_text(ann->name, sizeof(ann->name), val);
@@ -121,7 +151,10 @@ AnnData *annotate_load(const char *path) {
                     if (ann->ncomments < MAX_ANNOTATIONS) ann->comments[ann->ncomments].offset = atoi(val);
                 } else if (strcmp(key, "text") == 0) {
                     if (ann->ncomments < MAX_ANNOTATIONS) {
+                        unescape_newlines(val);
                         copy_text(ann->comments[ann->ncomments].text, sizeof(ann->comments[ann->ncomments].text), val);
+                        last_text = ann->comments[ann->ncomments].text;
+                        last_text_sz = sizeof(ann->comments[ann->ncomments].text);
                         ann->ncomments++;
                     }
                 }
@@ -130,7 +163,10 @@ AnnData *annotate_load(const char *path) {
                     if (ann->nblocks < MAX_ANNOTATIONS) ann->blocks[ann->nblocks].offset = atoi(val);
                 } else if (strcmp(key, "text") == 0) {
                     if (ann->nblocks < MAX_ANNOTATIONS) {
+                        unescape_newlines(val);
                         copy_text(ann->blocks[ann->nblocks].text, sizeof(ann->blocks[ann->nblocks].text), val);
+                        last_text = ann->blocks[ann->nblocks].text;
+                        last_text_sz = sizeof(ann->blocks[ann->nblocks].text);
                         ann->nblocks++;
                     }
                 }
@@ -139,16 +175,45 @@ AnnData *annotate_load(const char *path) {
                     if (ann->nxrefs < MAX_ANNOTATIONS) ann->xrefs[ann->nxrefs].offset = atoi(val);
                 } else if (strcmp(key, "text") == 0) {
                     if (ann->nxrefs < MAX_ANNOTATIONS) {
+                        unescape_newlines(val);
                         copy_text(ann->xrefs[ann->nxrefs].text, sizeof(ann->xrefs[ann->nxrefs].text), val);
+                        last_text = ann->xrefs[ann->nxrefs].text;
+                        last_text_sz = sizeof(ann->xrefs[ann->nxrefs].text);
                         ann->nxrefs++;
                     }
                 }
             }
+        } else if (last_text) {
+            /* Continuation line */
+            char *cont = line;
+            if (isspace(line[0])) {
+                while (*cont && isspace(*cont)) cont++;
+            }
+            unescape_newlines(cont);
+            size_t curlen = strlen(last_text);
+            if (curlen + 1 < last_text_sz) {
+                strcat(last_text, "\n");
+                curlen++;
+                strncat(last_text, cont, last_text_sz - curlen - 1);
+            }
         }
     }
+    if (last_text) trim_trailing_newlines(last_text);
 
     fclose(fp);
     return ann;
+}
+
+static void save_text_field(FILE *fp, const char *key, const char *text) {
+    fprintf(fp, "%s = ", key);
+    for (const char *p = text; *p; p++) {
+        if (*p == '\n') {
+            fprintf(fp, "\n              "); /* Indent to match "text = " (approx) */
+        } else {
+            fputc(*p, fp);
+        }
+    }
+    fprintf(fp, "\n");
 }
 
 int annotate_save(const AnnData *ann, const char *path) {
@@ -177,13 +242,19 @@ int annotate_save(const AnnData *ann, const char *path) {
         fprintf(fp, "[label]\noffset = %d\nname = %s\n\n", ann->labels[i].offset, ann->labels[i].name);
     }
     for (int i = 0; i < ann->ncomments; i++) {
-        fprintf(fp, "[comment]\noffset = %d\ntext = %s\n\n", ann->comments[i].offset, ann->comments[i].text);
+        fprintf(fp, "[comment]\noffset = %d\n", ann->comments[i].offset);
+        save_text_field(fp, "text", ann->comments[i].text);
+        fprintf(fp, "\n");
     }
     for (int i = 0; i < ann->nblocks; i++) {
-        fprintf(fp, "[block]\noffset = %d\ntext = %s\n\n", ann->blocks[i].offset, ann->blocks[i].text);
+        fprintf(fp, "[block]\noffset = %d\n", ann->blocks[i].offset);
+        save_text_field(fp, "text", ann->blocks[i].text);
+        fprintf(fp, "\n");
     }
     for (int i = 0; i < ann->nxrefs; i++) {
-        fprintf(fp, "[xref]\noffset = %d\ntext = %s\n\n", ann->xrefs[i].offset, ann->xrefs[i].text);
+        fprintf(fp, "[xref]\noffset = %d\n", ann->xrefs[i].offset);
+        save_text_field(fp, "text", ann->xrefs[i].text);
+        fprintf(fp, "\n");
     }
 
     fclose(fp);

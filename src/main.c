@@ -216,6 +216,15 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_paned_set_shrink_start_child(GTK_PANED(dock_split), TRUE);
     gtk_paned_set_shrink_end_child(GTK_PANED(dock_split), FALSE);
 
+    GtkWidget *hex_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    GtkWidget *hex_header = gtk_label_new("HEX DUMP  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F  ASCII");
+    gtk_widget_add_css_class(hex_header, "monospace");
+    gtk_label_set_xalign(GTK_LABEL(hex_header), 0.0);
+    gtk_widget_set_margin_start(hex_header, 8);
+    gtk_widget_set_margin_top(hex_header, 4);
+    gtk_widget_set_margin_bottom(hex_header, 2);
+    gtk_box_append(GTK_BOX(hex_container), hex_header);
+
     GtkWidget *hex_scrolled = gtk_scrolled_window_new();
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(hex_scrolled),
                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -226,9 +235,11 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(hex_view), FALSE);
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(hex_view), GTK_WRAP_NONE);
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(hex_view), TRUE);
+    gtk_text_view_set_left_margin(GTK_TEXT_VIEW(hex_view), 8);
     gtk_widget_add_css_class(hex_view, "monospace");
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(hex_scrolled), hex_view);
     app->hex_view = hex_view;
+    gtk_box_append(GTK_BOX(hex_container), hex_scrolled);
 
     GtkWidget *search_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_widget_set_margin_start(search_box, 8);
@@ -237,7 +248,11 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_widget_set_margin_bottom(search_box, 6);
     gtk_widget_set_size_request(search_box, 260, -1);
 
-    GtkWidget *search_title = gtk_label_new("SEARCH (Ctrl+S)");
+    GtkWidget *search_title = gtk_label_new(NULL);
+    char *m = g_markup_printf_escaped(
+        "<span size='small' color='#888'><b>SEARCH</b></span>");
+    gtk_label_set_markup(GTK_LABEL(search_title), m);
+    g_free(m);
     gtk_label_set_xalign(GTK_LABEL(search_title), 0.0f);
     gtk_box_append(GTK_BOX(search_box), search_title);
 
@@ -254,11 +269,21 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_box_append(GTK_BOX(search_box), mode_row);
 
     GtkWidget *entry = gtk_entry_new();
+    gtk_widget_add_css_class(entry, "monospace");
     gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "Search value");
     gtk_box_append(GTK_BOX(search_box), entry);
 
     GtkWidget *find_next = gtk_button_new_with_label("Find Next");
     gtk_box_append(GTK_BOX(search_box), find_next);
+
+    GtkWidget *search_note = gtk_label_new(NULL);
+    char *nm = g_markup_printf_escaped(
+        "<span size='x-small' color='#666'>hex values in 0x0000 notation</span>");
+    gtk_label_set_markup(GTK_LABEL(search_note), nm);
+    g_free(nm);
+    gtk_label_set_xalign(GTK_LABEL(search_note), 0.5f);
+    gtk_box_append(GTK_BOX(search_box), search_note);
+
     gtk_box_append(GTK_BOX(search_box), gtk_label_new(""));
     gtk_widget_set_vexpand(gtk_widget_get_last_child(search_box), TRUE);
 
@@ -270,7 +295,7 @@ static GtkWidget *build_bottom_dock(App *app) {
     g_signal_connect(entry, "activate", G_CALLBACK(on_dock_search_activate), app);
     g_signal_connect(find_next, "clicked", G_CALLBACK(on_dock_search_next), app);
 
-    gtk_paned_set_start_child(GTK_PANED(dock_split), hex_scrolled);
+    gtk_paned_set_start_child(GTK_PANED(dock_split), hex_container);
     gtk_paned_set_end_child(GTK_PANED(dock_split), search_box);
     app->dock_paned = dock_split;
     return dock_split;
@@ -778,9 +803,20 @@ static void on_export_asm_clicked(GtkButton *button, gpointer user_data) {
 static void activate(GtkApplication *gtk_app, gpointer user_data) {
     App *app = user_data;
 
+    GtkCssProvider *provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_string(provider,
+        ".monospace { font-family: monospace; font-size: 12px; }\n"
+    );
+    gtk_style_context_add_provider_for_display(
+        gdk_display_get_default(),
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+    g_object_unref(provider);
+
     app->window = gtk_application_window_new(gtk_app);
     gtk_window_set_title(GTK_WINDOW(app->window), "z80bench");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 1180, 760);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 1180, 900);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_window_set_child(GTK_WINDOW(app->window), main_box);
@@ -821,13 +857,11 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     app->paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     app->pending_listing_addr = -1;
     app->pending_listing_retries = 0;
-    gtk_paned_set_position(GTK_PANED(app->paned), 630);
+    gtk_paned_set_position(GTK_PANED(app->paned), 700);
     gtk_paned_set_resize_start_child(GTK_PANED(app->paned), TRUE);
     gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
     gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), FALSE);
-    gtk_paned_set_position(GTK_PANED(app->paned), 700);
-    gtk_widget_set_vexpand(app->paned, TRUE);
     g_signal_connect(app->paned, "notify::position",
                      G_CALLBACK(on_main_paned_position_changed), app);
 
@@ -837,7 +871,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
 
     /* Vertical split: main content over bottom dock (hex + search) */
     app->main_vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
-    gtk_paned_set_position(GTK_PANED(app->main_vpaned), 500);
+    gtk_paned_set_position(GTK_PANED(app->main_vpaned), 580);
     gtk_paned_set_resize_start_child(GTK_PANED(app->main_vpaned), TRUE);
     gtk_paned_set_shrink_start_child(GTK_PANED(app->main_vpaned), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(app->main_vpaned), FALSE);
