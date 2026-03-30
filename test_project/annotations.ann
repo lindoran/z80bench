@@ -9,3 +9,11 @@ offset = 0
 end = 1023
 type = CODE
 
+[label]
+offset = 0
+name = START
+
+[block]
+offset = 0
+text = This is a very long block comment that should be wrapped at 77 characters of content so that the total line length in the assembly output is 79 characters, but in the listing view it should be 100 characters because of the 21 character listing zone prefix.
+

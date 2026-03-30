@@ -7,30 +7,26 @@
 /*
  * Column layout (monospace characters):
  *
- *   0000  C3 74 00       jp    00074h          ; comment to col 79
- *   ^     ^              ^     ^               ^
- *   0     6              18    24              40
+ *   Listing zone:  addr(6) + bytes(9) + ascii(6) = 21 chars
+ *   Assembly zone: starts at col 21
+ *     COL_LABEL = 21  — labels and block comment ; lines
+ *     COL_MNEM  = 35  — mnemonics (14 chars into assembly zone)
+ *     COL_OPS   = 41  — operands (6 chars after mnemonic)
+ *     COL_CMT   = 56  — inline comments
+ *     COL_MAX   = 79  — standard assembly line width (excluding listing zone)
  *
- *   COL_ADDR   =  0  (4 chars + 2 space = 6)
- *   COL_BYTES  =  6  (12 chars: up to 4 × "XX " padded)
- *   COL_ASCII  = 18  (4 chars + 1 space = 5)
- *   COL_MNEM   = 23  (5 chars + 1 space)
- *   COL_OPS    = 29  (variable)
- *   COL_CMT    = 45  ("; " + comment text, to col 79)
- *   COL_MAX    = 79
- *
- * Block/label rows indent to COL_MNEM - 1 (column 22).
- * Block comment text wraps at 77 chars (79 - 2 for "; ") and each
- * wrapped line is shown on its own display line prefixed with "; ".
+ * Block/label rows start at COL_LABEL (column 21).
+ * Block comment text wraps at 77 chars (79 - 2 for "; ") so the assembly part
+ * is 79 chars wide. In the listing UI, this extends to column 100.
  */
 
-#define COL_MNEM 21
+#define COL_MNEM 35
 #define COL_LABEL 21
-#define COL_OPS  27
-#define COL_CMT  43
-#define COL_MAX  79
-#define CMT_MAX  (COL_MAX - COL_CMT - 2)   /* 32 chars after "; " */
-#define BLOCK_WRAP (COL_MAX - COL_MNEM - 2) /* wrap relative to label col */
+#define COL_OPS  41
+#define COL_CMT  56
+#define COL_MAX  100
+#define CMT_MAX  (COL_MAX - COL_CMT - 2)   /* relative to assembly zone? No, this stays small for now */
+#define BLOCK_WRAP 77                      /* wrap at 79 columns in assembly zone */
 
 /* Row type tags */
 #define ROW_TYPE_MAIN  0
@@ -123,7 +119,7 @@ static GString *format_block(const char *text, int indent) {
         int line_len = nl ? (int)(nl - p) : (int)strlen(p);
 
         int consumed = 0;
-        int avail = BLOCK_WRAP - indent;
+        int avail = BLOCK_WRAP;  /* BLOCK_WRAP = COL_MAX - COL_MNEM - 2: already accounts for indent and "; " */
         if (avail < 4) avail = 4;
 
         while (consumed < line_len) {
@@ -163,9 +159,8 @@ static GString *format_block(const char *text, int indent) {
 /* ==========================================================================
  * Row content builders — single monospace label per row
  * ========================================================================== */
-
 static GtkWidget *build_block_content(DisasmLine *dl) {
-    GString *formatted = format_block(dl->block[0] ? dl->block : "", COL_MNEM);
+    GString *formatted = format_block(dl->block[0] ? dl->block : "", COL_LABEL);
     char *escaped = g_markup_escape_text(formatted->str, -1);
     g_string_free(formatted, TRUE);
 
@@ -187,7 +182,7 @@ static GtkWidget *build_label_content(DisasmLine *dl) {
     char *escaped = g_markup_escape_text(dl->label, -1);
     char *markup = g_strdup_printf(
         "<span font_family='Monospace'><span color='#EF9F27'>%*s%s:</span></span>",
-        COL_MNEM, "", escaped);
+        COL_LABEL, "", escaped);
     g_free(escaped);
 
     GtkWidget *lbl = gtk_label_new(NULL);
@@ -264,13 +259,13 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
         while (blen < 9) bytes_str[blen++] = ' ';
         bytes_str[9] = '\0';
 
-        /* ASCII */
-        char ascii_str[6] = "     ";
+        /* ASCII — 4 chars + 2 spaces = 6 (reaches assembly zone at col 21) */
+        char ascii_str[7] = "      ";
         for (int b = 0; b < row_count; b++) {
             unsigned char c = rom_ptr[b];
             ascii_str[b] = (c >= 0x20 && c < 0x7F) ? (char)c : '.';
         }
-        ascii_str[4] = ' '; ascii_str[5] = '\0';
+        ascii_str[4] = ' '; ascii_str[5] = ' '; ascii_str[6] = '\0';
 
         char *bytes_esc = g_markup_escape_text(bytes_str, -1);
         char *ascii_esc = g_markup_escape_text(ascii_str, -1);
@@ -278,6 +273,10 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
         g_string_append_printf(markup, "<span color='#85B7EB'>%s</span>", addr_esc);
         g_string_append_printf(markup, "<span color='#666'>%s</span>", bytes_esc);
         g_string_append_printf(markup, "<span color='#4a7a4a'>%s</span>", ascii_esc);
+
+        /* Pad from end of listing zone (col 21) to COL_MNEM (col 35) */
+        int pad = COL_MNEM - COL_LABEL;
+        for (int s = 0; s < pad; s++) g_string_append_c(markup, ' ');
 
         if (is_data) {
             g_string_append_printf(markup,
