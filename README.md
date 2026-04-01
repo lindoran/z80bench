@@ -1,54 +1,72 @@
 # z80bench
 
-`z80bench` is a GTK4 desktop workbench for Z80 ROM annotation and export.
-It loads a ROM project directory, disassembles CODE regions with `z80dasm`,
-tracks labels/comments/segments/symbols, and exports z88dk-compatible source.
+`z80bench` is a GTK4 desktop workbench for annotating Z80 ROMs and exporting z88dk-compatible assembly output.
 
-## Current Shape (April 2026)
+## What It Does
 
-- C99 backend with a GTK4 UI
-- Project files live in one directory: `rom.bin`, `listing.mnm`,
-  `annotations.ann`, `segments.map`, `symbols.sym`
-- Segments, symbols, and annotations are editable in-app
-- Segment types include direct data ranges: `DIRECT_BYTE`, `DIRECT_WORD`,
-  and `DEFINE_MSG` (rendering as `DEFB` / `DEFW` / `DEFM`)
-- Operand literals are normalized to `0x` form and replaceable with
-  resolved symbol/label names where available
-- Session persistence is enabled for:
-  - recent projects
-  - last project path
-  - auto-open-last preference
-- Bottom dock includes hex-analysis filters (text runs, high-bit runs,
-  and smart address-in/out-of-ROM highlighting)
-- Side panels use stateless click behavior:
-  - single click jumps in listing
-  - double click opens editor dialog
-- Segment + symbol dialogs now share a similar flow:
-  - `Add`/`Update`/`Remove` apply immediately
-  - `Close` exits dialog
-- Notes fields have been removed from segment/symbol dialogs
-- The build succeeds with `make`
+- Opens a ROM project directory
+- Disassembles CODE ranges using `z80dasm`
+- Lets you edit labels, comments, segments, and symbols
+- Persists project/session data to flat text files
+- Exports annotated output as `.lst` and `.asm`
 
-## Known Rough Edges
+## Project Layout
 
-- The listing view is still a `GtkListBox`-based implementation, not the
-  virtualized `GtkListView` described in the older design notes
-- The references workflow is still incomplete
-- Segment editor `Close` commits/reloads+jumps; window `X` close path still
-  follows normal destroy behavior and should be treated as a separate flow
-- Legacy `project.*` filenames still open, but new projects save with the
-  clearer file names above
+A project is a folder with these files:
 
-## Docs
+- `rom.bin` (ROM binary, read-only after import)
+- `listing.mnm` (derived disassembly cache)
+- `annotations.ann` (labels/comments/regions/meta)
+- `segments.map` (named address ranges)
+- `symbols.sym` (named addresses/constants)
 
-- [`docs/STATUS.md`](docs/STATUS.md) - current state and known gaps
-- [`docs/DESIGN.md`](docs/DESIGN.md) - project model and file formats
-- [`docs/DISASM.md`](docs/DISASM.md) - disassembler interface
-- [`docs/UI.md`](docs/UI.md) - UI layout and widget plan
-- [`docs/SEGMENTS_RULES.md`](docs/SEGMENTS_RULES.md) - rules baseline for parent/subrange behavior
+Legacy `project.*` names still load for compatibility, but current saves use the names above.
 
 ## Build
 
 ```bash
 make
 ```
+
+## Run
+
+```bash
+./z80bench
+```
+
+## CLI Validation
+
+```bash
+./z80bench-cli validate <project_dir>
+```
+
+## UI Notes
+
+Current UI behavior includes:
+
+- Listing + side panels for segments, symbols, and annotations
+- Side panel interaction:
+  - single click jumps in listing
+  - double click opens edit dialog
+- Segment and symbol dialogs apply `Add`/`Update`/`Remove` immediately
+- Bottom hex-analysis dock with text/high-bit/address filters
+
+## Data And Workflow Notes
+
+- `rom.bin` is treated as immutable source input
+- `listing.mnm` is regenerable cache data
+- Operand literals normalize to `0x` style
+- Symbol/label resolution is applied where available
+
+## Historical Design/Iteration Docs
+
+Older AI iteration notes and design/status docs are kept for reference in:
+
+- `docs/ai-iteration-history/`
+
+These are useful for project history, but not required for normal usage.
+
+## License
+
+This project is licensed under the MIT License.
+See `LICENSE` for the full text.
