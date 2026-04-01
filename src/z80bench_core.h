@@ -23,7 +23,6 @@
 #define DISASM_OPERANDS_MAX   64
 #define DISASM_LABEL_MAX      64
 #define DISASM_COMMENT_MAX   1024
-#define DISASM_XREF_MAX      256
 #define DISASM_BYTES_MAX       4    /* max Z80 instruction length */
 
 typedef enum {
@@ -51,14 +50,10 @@ typedef enum {
     MAP_IO,
     MAP_SYSVARS,
     MAP_UNMAPPED,
-    MAP_DIRECT_BYTE,  /* DB range — renders as DEFB $XX,$XX,... */
-    MAP_DEFINE_MSG    /* DEFM range — renders as DEFM "string" */
+    MAP_DIRECT_BYTE,  /* byte range — renders as DEFB 0xNN,... */
+    MAP_DIRECT_WORD,  /* word range — renders as DEFW 0xNNNN */
+    MAP_DEFINE_MSG    /* string range — renders as DEFM "..." */
 } MapType;
-
-typedef enum {
-    XREF_ADDR,    /* address referenced by one or more instructions */
-    XREF_ORPHAN   /* byte z80dasm could not decode */
-} XrefType;
 
 /* --------------------------------------------------------------------------
  * Data Structures
@@ -78,7 +73,6 @@ typedef struct {
     char          label[DISASM_LABEL_MAX];       /* from project.ann [label] */
     char          comment[DISASM_COMMENT_MAX];   /* from project.ann [comment] */
     char          block[DISASM_COMMENT_MAX];     /* from project.ann [block] */
-    char          xref[DISASM_XREF_MAX];         /* from project.ann [xref] */
 
     /* populated by symbols_resolve() after disasm_range() returns */
     char          sym_name[DISASM_LABEL_MAX];    /* symbol name if operand_addr matches */
@@ -105,17 +99,6 @@ typedef struct {
     MapType type;
     char    notes[DISASM_COMMENT_MAX];
 } MapEntry;
-
-typedef struct {
-    int      addr;                        /* absolute address */
-    XrefType xtype;
-    int      ref_count;                   /* number of instructions referencing this addr; 0 for ORPHAN */
-    char     sym_name[DISASM_LABEL_MAX];  /* symbol name if known, else "" */
-    int      sym_type;                    /* SymbolType enum value, -1 if none */
-    int      in_rom;                      /* 1 if addr falls within the ROM range */
-    unsigned char first_bytes[3];         /* first 1-3 bytes from project.bin if in_rom */
-    int      first_byte_count;
-} XrefEntry;
 
 /* Forward declarations for internal data structures */
 typedef struct AnnData AnnData;
@@ -170,7 +153,15 @@ int disasm_read_mnm(const char          *path,
                     int                  load_addr,
                     DisasmLine          *out,
                     int                  out_max);
-int disasm_instr_size(const unsigned char *rom, int offset, int rom_size);
+
+/* --------------------------------------------------------------------------
+ * Module: Operand Context Helpers (opctx.c)
+ * -------------------------------------------------------------------------- */
+
+int opctx_has_absolute_operand_ref(const DisasmLine *dl);
+int opctx_has_constant_immediate_operand(const DisasmLine *dl);
+int opctx_prefers_byte_hex_width(const DisasmLine *dl);
+int opctx_compute_operand_value(const DisasmLine *dl);
 
 /* --------------------------------------------------------------------------
  * Module: Annotations (annotate.c)
@@ -182,13 +173,10 @@ int annotate_save(const AnnData *ann, const char *path);
 void annotate_free(AnnData *ann);
 void annotate_get_meta_safe(const AnnData *ann, char *name, size_t name_sz,
                             int *load_addr);
-void annotate_get_meta(const AnnData *ann, char *name, int *load_addr);
 const Region *annotate_get_regions(const AnnData *ann, int *nregions);
-int annotate_get_region_safe(const AnnData *ann, int i, Region *out);
 void annotate_set_regions(AnnData *ann, const Region *regions, int nregions);
 void annotate_merge(DisasmLine *lines, int nlines, const AnnData *ann);
 void annotate_sync_from_lines(AnnData *ann, const DisasmLine *lines, int nlines);
-int xref_build(const DisasmLine *lines, int nlines, XrefEntry *out, int out_max);
 
 /* --------------------------------------------------------------------------
  * Module: Symbols (symbols.c)
@@ -199,6 +187,7 @@ SymData *symbols_load(const char *path);
 int      symbols_save(const SymData *sym, const char *path);
 void     symbols_free(SymData *sym);
 void     symbols_resolve(DisasmLine *lines, int nlines, const SymData *sym);
+void     symbols_format_operands(const DisasmLine *dl, char *out, size_t out_sz);
 int      symbols_count(const SymData *sym);
 const Symbol *symbols_get(const SymData *sym, int i);
 int      symbols_get_safe(const SymData *sym, int i, Symbol *out);

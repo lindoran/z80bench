@@ -4,12 +4,22 @@
 It loads a ROM project directory, disassembles CODE regions with `z80dasm`,
 tracks labels/comments/segments/symbols, and exports z88dk-compatible source.
 
-## Current Shape (March 2026)
+## Current Shape (April 2026)
 
 - C99 backend with a GTK4 UI
 - Project files live in one directory: `rom.bin`, `listing.mnm`,
   `annotations.ann`, `segments.map`, `symbols.sym`
 - Segments, symbols, and annotations are editable in-app
+- Segment types include direct data ranges: `DIRECT_BYTE`, `DIRECT_WORD`,
+  and `DEFINE_MSG` (rendering as `DEFB` / `DEFW` / `DEFM`)
+- Operand literals are normalized to `0x` form and replaceable with
+  resolved symbol/label names where available
+- Session persistence is enabled for:
+  - recent projects
+  - last project path
+  - auto-open-last preference
+- Bottom dock includes hex-analysis filters (text runs, high-bit runs,
+  and smart address-in/out-of-ROM highlighting)
 - Side panels use stateless click behavior:
   - single click jumps in listing
   - double click opens editor dialog

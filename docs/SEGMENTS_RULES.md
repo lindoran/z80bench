@@ -12,7 +12,7 @@ This is the implementation contract for segment behavior before tree UI work.
   - Parent overlap validation:
     - `ROM/RAM/VRAM/IO/SYSVARS` cannot overlap other parent ranges
   - Subrange overlap validation:
-    - `DIRECT_BYTE/DEFINE_MSG` cannot overlap other subranges
+    - `DIRECT_BYTE/DIRECT_WORD/DEFINE_MSG` cannot overlap other subranges
   - Explicit `UNMAPPED` creation is blocked in dialog flow:
     - `UNMAPPED` is reserved/legacy and is not a user-authored saved range
   - Runtime grouping pass in current flat UI:
@@ -28,7 +28,7 @@ This is the implementation contract for segment behavior before tree UI work.
 - Parent ranges:
   - `ROM`, `RAM`, `VRAM`, `IO`, `SYSVARS`
 - Subranges:
-  - `DIRECT_BYTE`, `DEFINE_MSG`
+  - `DIRECT_BYTE`, `DIRECT_WORD`, `DEFINE_MSG`
 - `UNMAPPED`:
   - reserved for compatibility with older files; not exposed in editor flow
 

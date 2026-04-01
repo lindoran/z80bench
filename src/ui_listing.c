@@ -215,8 +215,10 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
     { int ml = strlen(mnem_str); while (ml < 5) mnem_str[ml++] = ' '; mnem_str[5] = '\0'; }
 
     /* Operands */
+    char disp_ops[DISASM_OPERANDS_MAX];
+    symbols_format_operands(dl, disp_ops, sizeof(disp_ops));
     int ops_col = COL_MNEM + 1 + 5 + 1;
-    int ops_len = strlen(dl->operands);
+    int ops_len = strlen(disp_ops);
     int cmt_pad = COL_CMT - ops_col - ops_len;
 
     /* Comment */
@@ -227,7 +229,7 @@ static GtkWidget *build_main_content(DisasmLine *dl, Project *p) {
     /* Build markup */
     char *addr_esc = g_markup_escape_text(addr_str,  -1);
     char *mnem_esc = g_markup_escape_text(mnem_str,  -1);
-    char *ops_esc  = g_markup_escape_text(dl->operands, -1);
+    char *ops_esc  = g_markup_escape_text(disp_ops, -1);
     char *cmt_esc  = dl->comment[0] ? g_markup_escape_text(cmt_str, -1) : g_strdup("");
 
     const char *mc = mnemonic_colour(dl->mnemonic);
@@ -532,6 +534,7 @@ typedef struct {
     UIListingFocusSearchFn focus_search_cb;
     gpointer               focus_search_data;
     int                    last_visible_addr;
+    gboolean               addr_search_include_operand_refs;
 } ListingCtx;
 
 static void listing_ctx_free(gpointer p) { g_free(p); }
@@ -631,8 +634,29 @@ static gboolean do_search_text(GtkWidget *outer, ListingCtx *ctx, const char *te
             if      (mode == UI_SEARCH_ADDR) {
                 int a = (int)strtol(text, NULL, 0);
                 match = (dl->addr == a);
+                if (!match && ctx->addr_search_include_operand_refs)
+                    match = (dl->operand_addr == a);
             } else if (mode == UI_SEARCH_MNEM) {
-                match = (g_ascii_strcasecmp(dl->mnemonic, text) == 0);
+                if (g_ascii_strcasecmp(dl->mnemonic, text) == 0) {
+                    match = TRUE;
+                } else {
+                    /* Also allow symbol/label/operand text search in mnemonic mode. */
+                    char disp_ops[DISASM_OPERANDS_MAX];
+                    symbols_format_operands(dl, disp_ops, sizeof(disp_ops));
+                    char *needle = g_ascii_strdown(text, -1);
+                    char *haystack_sym = dl->sym_name[0] ? g_ascii_strdown(dl->sym_name, -1) : NULL;
+                    char *haystack_lbl = dl->label[0] ? g_ascii_strdown(dl->label, -1) : NULL;
+                    char *haystack_ops = disp_ops[0] ? g_ascii_strdown(disp_ops, -1) : NULL;
+                    if ((haystack_sym && strstr(haystack_sym, needle)) ||
+                        (haystack_lbl && strstr(haystack_lbl, needle)) ||
+                        (haystack_ops && strstr(haystack_ops, needle))) {
+                        match = TRUE;
+                    }
+                    g_free(needle);
+                    g_free(haystack_sym);
+                    g_free(haystack_lbl);
+                    g_free(haystack_ops);
+                }
             } else {
                 /* Case-insensitive substring search for comments and blocks */
                 char *needle = g_ascii_strdown(text, -1);
@@ -718,6 +742,13 @@ void ui_listing_set_search_focus_cb(GtkWidget *outer,
     ctx->focus_search_data = data;
 }
 
+void ui_listing_set_addr_search_include_operand_refs(GtkWidget *listing_outer,
+                                                     gboolean include_refs) {
+    ListingCtx *ctx = g_object_get_data(G_OBJECT(listing_outer), "listing-ctx");
+    if (!ctx) return;
+    ctx->addr_search_include_operand_refs = include_refs;
+}
+
 gboolean ui_listing_search_next(GtkWidget *outer, const char *text, UISearchMode mode) {
     ListingCtx *ctx = g_object_get_data(G_OBJECT(outer), "listing-ctx");
     if (!ctx) return FALSE;
@@ -768,6 +799,7 @@ GtkWidget *ui_listing_new(Project *p, GtkWidget *panels) {
     ctx->selected_row    = -1;
     ctx->panels_destroy_handler = 0;
     ctx->last_visible_addr = -1;
+    ctx->addr_search_include_operand_refs = FALSE;
 
     g_object_set_data_full(G_OBJECT(outer), "listing-ctx", ctx, listing_ctx_free);
 

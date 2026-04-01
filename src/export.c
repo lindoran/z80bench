@@ -139,6 +139,9 @@ int export_lst(const Project *p, const char *path) {
 
             /* assembly zone — only on first row */
             if (row == 0) {
+                char disp_ops[DISASM_OPERANDS_MAX];
+                symbols_format_operands(dl, disp_ops, sizeof(disp_ops));
+
                 /* pad from col 21 to COL_MNEM */
                 fprintf(fp, "%*s", EXP_COL_MNEM - EXP_COL_LABEL, "");
 
@@ -146,8 +149,8 @@ int export_lst(const Project *p, const char *path) {
                 fprintf(fp, "%-5s ", dl->mnemonic);
 
                 /* operands */
-                int ops_len = strlen(dl->operands);
-                fprintf(fp, "%s", dl->operands);
+                int ops_len = strlen(disp_ops);
+                fprintf(fp, "%s", disp_ops);
 
                 /* inline comment — pad to COL_CMT */
                 if (dl->comment[0]) {
@@ -205,9 +208,11 @@ int export_asm(const Project *p, const char *path) {
             fprintf(fp, "%s:\n", dl->label);
 
         /* Mnemonic + operands indented */
-        int ops_len = strlen(dl->operands);
+        char disp_ops[DISASM_OPERANDS_MAX];
+        symbols_format_operands(dl, disp_ops, sizeof(disp_ops));
+        int ops_len = strlen(disp_ops);
         fprintf(fp, "%-*s%-5s ", ASM_COL_MNEM, "", dl->mnemonic);
-        fprintf(fp, "%s", dl->operands);
+        fprintf(fp, "%s", disp_ops);
 
         /* Inline comment — pad to ASM_COL_CMT */
         if (dl->comment[0]) {

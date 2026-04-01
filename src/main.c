@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
 #include <string.h>
 #include "z80bench.h"
 
@@ -21,12 +22,28 @@ typedef struct {
     GtkWidget *search_mode_addr;
     GtkWidget *search_mode_mnem;
     GtkWidget *search_mode_comment;
+    GtkWidget *search_addr_refs_check;
     char       project_path[512];
     int        pending_listing_addr;
     int        pending_listing_retries;
     gboolean   ui_busy;
     gboolean   pending_segment_reload;
     gboolean   segment_save_idle_queued;
+    gboolean   auto_open_last;
+    GtkWidget *auto_open_check;
+    gboolean   highlight_ascii_runs;
+    GtkWidget *highlight_ascii_check;
+    gboolean   highlight_highbit_runs;
+    GtkWidget *highlight_highbit_check;
+    gboolean   highlight_ptr_in_rom;
+    GtkWidget *highlight_ptr_in_rom_check;
+    gboolean   highlight_ptr_out_rom;
+    GtkWidget *highlight_ptr_out_rom_check;
+    gboolean   ptr_ignore_ascii_overlap;
+    GtkWidget *ptr_ignore_ascii_overlap_check;
+    char       last_project_path[512];
+    int        recent_count;
+    char       recent_paths[10][512];
 } App;
 
 typedef struct {
@@ -38,6 +55,12 @@ typedef struct {
     GtkWidget *window;
 } WindowSizeUnlock;
 
+typedef struct {
+    App       *app;
+    GtkWidget *dialog;
+    char       path[512];
+} RecentItemCtx;
+
 /* --------------------------------------------------------------------------
  * Forward declarations
  * -------------------------------------------------------------------------- */
@@ -45,6 +68,14 @@ typedef struct {
 static void show_new_project_dialog(App *app, const char *bin_path);
 static void on_open_project_clicked(GtkButton *button, gpointer user_data);
 static void on_new_project_clicked(GtkButton *button, gpointer user_data);
+static void on_open_recent_clicked(GtkButton *button, gpointer user_data);
+static void on_auto_open_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_highlight_ascii_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_highlight_highbit_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_highlight_ptr_in_rom_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_highlight_ptr_out_rom_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_ptr_ignore_ascii_overlap_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_search_addr_refs_toggled(GtkCheckButton *button, gpointer user_data);
 
 /* --------------------------------------------------------------------------
  * ImportCtx — lives for the duration of the new-project dialog
@@ -65,6 +96,7 @@ typedef struct {
 
 static gboolean controller_apply_pending_jump(gpointer user_data);  /* forward */
 static void controller_request_jump(gpointer user_data, int addr);  /* forward */
+static void controller_render(App *app);  /* forward */
 static void controller_reload_and_render(gpointer user_data);  /* forward */
 static void controller_segment_command(gpointer data, const UISegmentCmd *cmd,
                                        UISegmentCmdResult *res);  /* forward */
@@ -83,6 +115,11 @@ static void on_dock_search_activate(GtkEntry *entry, gpointer user_data);  /* fo
 static void on_dock_search_next(GtkButton *button, gpointer user_data);  /* forward */
 static void on_main_paned_position_changed(GObject *obj, GParamSpec *pspec,
                                            gpointer user_data);  /* forward */
+static gboolean app_open_project(App *app, const char *proj_dir, gboolean show_alert);
+static void app_load_persistence(App *app);
+static void app_save_config(App *app);
+static void app_save_state(App *app);
+static void app_add_recent_project(App *app, const char *proj_dir);
 
 static int controller_pick_paned_position(App *app, int current_pos) {
     int win_w = gtk_widget_get_width(app->window);
@@ -133,25 +170,189 @@ static void app_render_hex_dump(App *app) {
         return;
     }
 
-    GString *s = g_string_sized_new((gsize)app->project.rom_size * 6);
+    gboolean *highlight = NULL;
+    gboolean *highlight_high = NULL;
+    gboolean *highlight_ptr_in = NULL;
+    gboolean *highlight_ptr_out = NULL;
+    if (app->highlight_ascii_runs) {
+        highlight = g_new0(gboolean, (gsize)app->project.rom_size);
+        int min_run = 3;
+        /* Keep runs text-like: printable bytes plus common text controls. */
+        #define IS_TEXT_CTRL(b) ((b) == 0x00 || (b) == 0x09 || (b) == 0x0A || (b) == 0x0D)
+        #define IS_TEXTLIKE(b)  (((b) >= 0x20 && (b) < 0x7F) || IS_TEXT_CTRL(b))
+        for (int i = 0; i < app->project.rom_size; ) {
+            unsigned char c = app->project.rom[i];
+            if (!IS_TEXTLIKE(c)) {
+                i++;
+                continue;
+            }
+            int start = i;
+            int printable_count = 0;
+            while (i < app->project.rom_size) {
+                c = app->project.rom[i];
+                if (!IS_TEXTLIKE(c))
+                    break;
+                if (c >= 0x20 && c < 0x7F)
+                    printable_count++;
+                i++;
+            }
+            int len = i - start;
+            if (len >= min_run && printable_count >= min_run) {
+                for (int j = start; j < i; j++)
+                    highlight[j] = TRUE;
+            }
+        }
+        #undef IS_TEXT_CTRL
+        #undef IS_TEXTLIKE
+    }
+    if (app->highlight_highbit_runs) {
+        highlight_high = g_new0(gboolean, (gsize)app->project.rom_size);
+        int min_run = 3;
+        for (int i = 0; i < app->project.rom_size; ) {
+            unsigned char c = app->project.rom[i];
+            if (c < 0x80) {
+                i++;
+                continue;
+            }
+            int start = i;
+            while (i < app->project.rom_size && app->project.rom[i] >= 0x80)
+                i++;
+            int len = i - start;
+            if (len >= min_run) {
+                for (int j = start; j < i; j++)
+                    highlight_high[j] = TRUE;
+            }
+        }
+    }
+    if (app->highlight_ptr_in_rom || app->highlight_ptr_out_rom) {
+        int rom_start = app->project.load_addr;
+        int rom_end = rom_start + app->project.rom_size - 1;
+        if (app->highlight_ptr_in_rom)
+            highlight_ptr_in = g_new0(gboolean, (gsize)app->project.rom_size);
+        if (app->highlight_ptr_out_rom)
+            highlight_ptr_out = g_new0(gboolean, (gsize)app->project.rom_size);
+
+        /* Refined: only highlight real parameter-word bytes that appear in
+         * decoded listing lines (not every sliding byte pair in ROM). */
+        for (int li = 0; li < app->project.nlines; li++) {
+            const DisasmLine *dl = &app->project.lines[li];
+            if (!dl) continue;
+            if (dl->operand_addr < 0 || dl->operand_addr > 0xFFFF)
+                continue;
+            if (dl->offset < 0 || dl->byte_count < 2)
+                continue;
+
+            int v = dl->operand_addr & 0xFFFF;
+            unsigned char lo = (unsigned char)(v & 0xFF);
+            unsigned char hi = (unsigned char)((v >> 8) & 0xFF);
+            gboolean in_rom = (v >= rom_start && v <= rom_end);
+
+            for (int b = 0; b + 1 < dl->byte_count; b++) {
+                int off0 = dl->offset + b;
+                int off1 = off0 + 1;
+                if (off0 < 0 || off1 >= app->project.rom_size)
+                    continue;
+                if (app->project.rom[off0] != lo || app->project.rom[off1] != hi)
+                    continue;
+
+                if (app->ptr_ignore_ascii_overlap && highlight &&
+                    (highlight[off0] || highlight[off1]))
+                    continue;
+
+                if (in_rom && highlight_ptr_in) {
+                    highlight_ptr_in[off0] = TRUE;
+                    highlight_ptr_in[off1] = TRUE;
+                } else if (!in_rom && highlight_ptr_out) {
+                    highlight_ptr_out[off0] = TRUE;
+                    highlight_ptr_out[off1] = TRUE;
+                }
+            }
+        }
+    }
+
+    GtkTextTagTable *tt = gtk_text_buffer_get_tag_table(buf);
+    GtkTextTag *tag = gtk_text_tag_table_lookup(tt, "ascii-run");
+    if (!tag) {
+        tag = gtk_text_buffer_create_tag(buf, "ascii-run",
+                                         "foreground", "#E69F00",
+                                         "weight", PANGO_WEIGHT_BOLD,
+                                         NULL);
+    }
+    GtkTextTag *tag_high = gtk_text_tag_table_lookup(tt, "highbit-run");
+    if (!tag_high) {
+        tag_high = gtk_text_buffer_create_tag(buf, "highbit-run",
+                                              "foreground", "#56B4E9",
+                                              "weight", PANGO_WEIGHT_BOLD,
+                                              NULL);
+    }
+    GtkTextTag *tag_ptr_in = gtk_text_tag_table_lookup(tt, "ptr-in-rom");
+    if (!tag_ptr_in) {
+        tag_ptr_in = gtk_text_buffer_create_tag(buf, "ptr-in-rom",
+                                                "foreground", "#0072B2",
+                                                "weight", PANGO_WEIGHT_BOLD,
+                                                NULL);
+    }
+    GtkTextTag *tag_ptr_out = gtk_text_tag_table_lookup(tt, "ptr-out-rom");
+    if (!tag_ptr_out) {
+        tag_ptr_out = gtk_text_buffer_create_tag(buf, "ptr-out-rom",
+                                                 "foreground", "#CC79A7",
+                                                 "weight", PANGO_WEIGHT_BOLD,
+                                                 NULL);
+    }
+
+    gtk_text_buffer_set_text(buf, "", 0);
+    GtkTextIter it;
+    gtk_text_buffer_get_start_iter(buf, &it);
+
     for (int off = 0; off < app->project.rom_size; off += 16) {
         int addr = app->project.load_addr + off;
-        g_string_append_printf(s, "%08X: ", addr & 0xFFFFFFFF);
+        char head[16];
+        snprintf(head, sizeof(head), "%04X: ", addr & 0xFFFF);
+        gtk_text_buffer_insert(buf, &it, head, -1);
+
         for (int i = 0; i < 16; i++) {
-            if (off + i < app->project.rom_size)
-                g_string_append_printf(s, "%02X ", app->project.rom[off + i]);
-            else
-                g_string_append(s, "   ");
+            if (off + i < app->project.rom_size) {
+                char hx[4];
+                snprintf(hx, sizeof(hx), "%02X ", app->project.rom[off + i]);
+                if (highlight_ptr_in && highlight_ptr_in[off + i])
+                    gtk_text_buffer_insert_with_tags(buf, &it, hx, -1, tag_ptr_in, NULL);
+                else if (highlight_ptr_out && highlight_ptr_out[off + i])
+                    gtk_text_buffer_insert_with_tags(buf, &it, hx, -1, tag_ptr_out, NULL);
+                else if (highlight && highlight[off + i])
+                    gtk_text_buffer_insert_with_tags(buf, &it, hx, -1, tag, NULL);
+                else if (highlight_high && highlight_high[off + i])
+                    gtk_text_buffer_insert_with_tags(buf, &it, hx, -1, tag_high, NULL);
+                else
+                    gtk_text_buffer_insert(buf, &it, hx, -1);
+            } else {
+                gtk_text_buffer_insert(buf, &it, "   ", 3);
+            }
         }
-        g_string_append(s, " ");
+
+        gtk_text_buffer_insert(buf, &it, " ", 1);
+
         for (int i = 0; i < 16 && off + i < app->project.rom_size; i++) {
             unsigned char c = app->project.rom[off + i];
-            g_string_append_c(s, (c >= 0x20 && c < 0x7F) ? (char)c : '.');
+            char ch = (c >= 0x20 && c < 0x7F) ? (char)c : '.';
+            if (highlight_ptr_in && highlight_ptr_in[off + i])
+                gtk_text_buffer_insert_with_tags(buf, &it, &ch, 1, tag_ptr_in, NULL);
+            else if (highlight_ptr_out && highlight_ptr_out[off + i])
+                gtk_text_buffer_insert_with_tags(buf, &it, &ch, 1, tag_ptr_out, NULL);
+            else if (highlight && highlight[off + i])
+                gtk_text_buffer_insert_with_tags(buf, &it, &ch, 1, tag, NULL);
+            else if (highlight_high && highlight_high[off + i])
+                gtk_text_buffer_insert_with_tags(buf, &it, &ch, 1, tag_high, NULL);
+            else
+                gtk_text_buffer_insert(buf, &it, &ch, 1);
         }
-        g_string_append_c(s, '\n');
+
+        gtk_text_buffer_insert(buf, &it, "\n", 1);
     }
-    gtk_text_buffer_set_text(buf, s->str, -1);
-    g_string_free(s, TRUE);
+
+    g_free(highlight);
+    g_free(highlight_high);
+    g_free(highlight_ptr_in);
+    g_free(highlight_ptr_out);
 }
 
 static void app_sync_hex_to_addr(App *app, int addr) {
@@ -176,6 +377,157 @@ static UISearchMode app_get_search_mode(App *app) {
         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(app->search_mode_comment)))
         return UI_SEARCH_COMMENT;
     return UI_SEARCH_ADDR;
+}
+
+static char *app_config_file_path(void) {
+    return g_build_filename(g_get_user_config_dir(), "z80bench", "config.ini", NULL);
+}
+
+static char *app_state_file_path(void) {
+    return g_build_filename(g_get_user_state_dir(), "z80bench", "state.ini", NULL);
+}
+
+static gboolean app_write_key_file(const char *path, GKeyFile *kf) {
+    gsize len = 0;
+    gchar *content = g_key_file_to_data(kf, &len, NULL);
+    if (!content) return FALSE;
+
+    char *dir = g_path_get_dirname(path);
+    if (g_mkdir_with_parents(dir, 0755) != 0) {
+        g_free(content);
+        g_free(dir);
+        return FALSE;
+    }
+    g_free(dir);
+
+    gboolean ok = g_file_set_contents(path, content, (gssize)len, NULL);
+    g_free(content);
+    return ok;
+}
+
+static void app_load_persistence(App *app) {
+    if (!app) return;
+    app->auto_open_last = FALSE;
+    app->recent_count = 0;
+    app->last_project_path[0] = '\0';
+
+    char *config_path = app_config_file_path();
+    GKeyFile *config = g_key_file_new();
+    if (g_key_file_load_from_file(config, config_path, G_KEY_FILE_NONE, NULL)) {
+        if (g_key_file_has_key(config, "session", "auto_open_last", NULL))
+            app->auto_open_last = g_key_file_get_boolean(config, "session", "auto_open_last", NULL);
+    }
+    g_key_file_unref(config);
+    g_free(config_path);
+
+    char *state_path = app_state_file_path();
+    GKeyFile *state = g_key_file_new();
+    if (g_key_file_load_from_file(state, state_path, G_KEY_FILE_NONE, NULL)) {
+        gchar *last = g_key_file_get_string(state, "session", "last_project", NULL);
+        if (last) {
+            g_strlcpy(app->last_project_path, last, sizeof(app->last_project_path));
+            g_free(last);
+        }
+
+        gsize nrecents = 0;
+        gchar **recents = g_key_file_get_string_list(state, "recent", "items", &nrecents, NULL);
+        if (recents) {
+            for (gsize i = 0; i < nrecents && app->recent_count < 10; i++) {
+                if (recents[i] && recents[i][0]) {
+                    g_strlcpy(app->recent_paths[app->recent_count],
+                              recents[i], sizeof(app->recent_paths[0]));
+                    app->recent_count++;
+                }
+            }
+            g_strfreev(recents);
+        }
+    }
+    g_key_file_unref(state);
+    g_free(state_path);
+}
+
+static void app_save_config(App *app) {
+    if (!app) return;
+    char *config_path = app_config_file_path();
+    GKeyFile *config = g_key_file_new();
+    g_key_file_set_boolean(config, "session", "auto_open_last", app->auto_open_last);
+    app_write_key_file(config_path, config);
+    g_key_file_unref(config);
+    g_free(config_path);
+}
+
+static void app_save_state(App *app) {
+    if (!app) return;
+    char *state_path = app_state_file_path();
+    GKeyFile *state = g_key_file_new();
+
+    g_key_file_set_string(state, "session", "last_project",
+                          app->last_project_path[0] ? app->last_project_path : "");
+    if (app->recent_count > 0) {
+        const gchar *vals[10];
+        for (int i = 0; i < app->recent_count; i++)
+            vals[i] = app->recent_paths[i];
+        g_key_file_set_string_list(state, "recent", "items", vals, (gsize)app->recent_count);
+    } else {
+        g_key_file_set_string_list(state, "recent", "items", NULL, 0);
+    }
+
+    app_write_key_file(state_path, state);
+    g_key_file_unref(state);
+    g_free(state_path);
+}
+
+static void app_add_recent_project(App *app, const char *proj_dir) {
+    if (!app || !proj_dir || !proj_dir[0]) return;
+
+    int existing = -1;
+    for (int i = 0; i < app->recent_count; i++) {
+        if (strcmp(app->recent_paths[i], proj_dir) == 0) {
+            existing = i;
+            break;
+        }
+    }
+
+    if (existing == 0) {
+        g_strlcpy(app->last_project_path, proj_dir, sizeof(app->last_project_path));
+        app_save_state(app);
+        return;
+    }
+
+    if (existing > 0) {
+        for (int i = existing; i > 0; i--)
+            g_strlcpy(app->recent_paths[i], app->recent_paths[i - 1], sizeof(app->recent_paths[0]));
+    } else {
+        if (app->recent_count < 10)
+            app->recent_count++;
+        for (int i = app->recent_count - 1; i > 0; i--)
+            g_strlcpy(app->recent_paths[i], app->recent_paths[i - 1], sizeof(app->recent_paths[0]));
+    }
+    g_strlcpy(app->recent_paths[0], proj_dir, sizeof(app->recent_paths[0]));
+    g_strlcpy(app->last_project_path, proj_dir, sizeof(app->last_project_path));
+    app_save_state(app);
+}
+
+static gboolean app_open_project(App *app, const char *proj_dir, gboolean show_alert) {
+    if (!app || !proj_dir || !proj_dir[0]) return FALSE;
+
+    project_close(&app->project);
+    app->project_path[0] = '\0';
+    if (project_open(&app->project, proj_dir) != 0) {
+        if (show_alert && app->window) {
+            GtkAlertDialog *alert = gtk_alert_dialog_new("Could not open project.");
+            gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
+            g_object_unref(alert);
+        }
+        return FALSE;
+    }
+
+    g_strlcpy(app->project_path, proj_dir, sizeof(app->project_path));
+    app->pending_listing_addr = -1;
+    app->pending_listing_retries = 0;
+    app_add_recent_project(app, proj_dir);
+    controller_render(app);
+    return TRUE;
 }
 
 static void on_dock_search_activate(GtkEntry *entry, gpointer user_data) {
@@ -217,13 +569,19 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_paned_set_shrink_end_child(GTK_PANED(dock_split), FALSE);
 
     GtkWidget *hex_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    GtkWidget *hex_header = gtk_label_new("HEX DUMP  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F  ASCII");
+    GtkWidget *hex_header_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_start(hex_header_row, 8);
+    gtk_widget_set_margin_end(hex_header_row, 8);
+    gtk_widget_set_margin_top(hex_header_row, 4);
+    gtk_widget_set_margin_bottom(hex_header_row, 2);
+    gtk_box_append(GTK_BOX(hex_container), hex_header_row);
+
+    GtkWidget *hex_header = gtk_label_new(
+        "ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F  0123456789ABCDEF");
     gtk_widget_add_css_class(hex_header, "monospace");
     gtk_label_set_xalign(GTK_LABEL(hex_header), 0.0);
-    gtk_widget_set_margin_start(hex_header, 8);
-    gtk_widget_set_margin_top(hex_header, 4);
-    gtk_widget_set_margin_bottom(hex_header, 2);
-    gtk_box_append(GTK_BOX(hex_container), hex_header);
+    gtk_widget_set_hexpand(hex_header, TRUE);
+    gtk_box_append(GTK_BOX(hex_header_row), hex_header);
 
     GtkWidget *hex_scrolled = gtk_scrolled_window_new();
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(hex_scrolled),
@@ -268,6 +626,12 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_box_append(GTK_BOX(mode_row), mode_comment);
     gtk_box_append(GTK_BOX(search_box), mode_row);
 
+    app->search_addr_refs_check =
+        gtk_check_button_new_with_label("Addr mode: include operand refs");
+    g_signal_connect(app->search_addr_refs_check, "toggled",
+                     G_CALLBACK(on_search_addr_refs_toggled), app);
+    gtk_box_append(GTK_BOX(search_box), app->search_addr_refs_check);
+
     GtkWidget *entry = gtk_entry_new();
     gtk_widget_add_css_class(entry, "monospace");
     gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "Search value");
@@ -283,6 +647,56 @@ static GtkWidget *build_bottom_dock(App *app) {
     g_free(nm);
     gtk_label_set_xalign(GTK_LABEL(search_note), 0.5f);
     gtk_box_append(GTK_BOX(search_box), search_note);
+
+    GtkWidget *filter_title = gtk_label_new(NULL);
+    char *fm = g_markup_printf_escaped(
+        "<span size='small' color='#888'><b>HEX FILTERS</b></span>");
+    gtk_label_set_markup(GTK_LABEL(filter_title), fm);
+    g_free(fm);
+    gtk_label_set_xalign(GTK_LABEL(filter_title), 0.0f);
+    gtk_widget_set_margin_top(filter_title, 6);
+    gtk_box_append(GTK_BOX(search_box), filter_title);
+
+    GtkWidget *filters_grid = gtk_grid_new();
+    gtk_grid_set_column_spacing(GTK_GRID(filters_grid), 10);
+    gtk_grid_set_row_spacing(GTK_GRID(filters_grid), 2);
+    gtk_box_append(GTK_BOX(search_box), filters_grid);
+
+    app->highlight_ascii_check = gtk_check_button_new_with_label("Text runs >=3");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->highlight_ascii_check),
+                                app->highlight_ascii_runs);
+    g_signal_connect(app->highlight_ascii_check, "toggled",
+                     G_CALLBACK(on_highlight_ascii_toggled), app);
+    gtk_grid_attach(GTK_GRID(filters_grid), app->highlight_ascii_check, 0, 0, 1, 1);
+
+    app->highlight_highbit_check = gtk_check_button_new_with_label("High-bit >=3");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->highlight_highbit_check),
+                                app->highlight_highbit_runs);
+    g_signal_connect(app->highlight_highbit_check, "toggled",
+                     G_CALLBACK(on_highlight_highbit_toggled), app);
+    gtk_grid_attach(GTK_GRID(filters_grid), app->highlight_highbit_check, 1, 0, 1, 1);
+
+    app->highlight_ptr_in_rom_check = gtk_check_button_new_with_label("Addr in ROM");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->highlight_ptr_in_rom_check),
+                                app->highlight_ptr_in_rom);
+    g_signal_connect(app->highlight_ptr_in_rom_check, "toggled",
+                     G_CALLBACK(on_highlight_ptr_in_rom_toggled), app);
+    gtk_grid_attach(GTK_GRID(filters_grid), app->highlight_ptr_in_rom_check, 0, 1, 1, 1);
+
+    app->highlight_ptr_out_rom_check = gtk_check_button_new_with_label("Addr out ROM");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->highlight_ptr_out_rom_check),
+                                app->highlight_ptr_out_rom);
+    g_signal_connect(app->highlight_ptr_out_rom_check, "toggled",
+                     G_CALLBACK(on_highlight_ptr_out_rom_toggled), app);
+    gtk_grid_attach(GTK_GRID(filters_grid), app->highlight_ptr_out_rom_check, 1, 1, 1, 1);
+
+    app->ptr_ignore_ascii_overlap_check =
+        gtk_check_button_new_with_label("Skip text overlap");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->ptr_ignore_ascii_overlap_check),
+                                app->ptr_ignore_ascii_overlap);
+    g_signal_connect(app->ptr_ignore_ascii_overlap_check, "toggled",
+                     G_CALLBACK(on_ptr_ignore_ascii_overlap_toggled), app);
+    gtk_grid_attach(GTK_GRID(filters_grid), app->ptr_ignore_ascii_overlap_check, 0, 2, 2, 1);
 
     gtk_box_append(GTK_BOX(search_box), gtk_label_new(""));
     gtk_widget_set_vexpand(gtk_widget_get_last_child(search_box), TRUE);
@@ -333,6 +747,11 @@ static void controller_render(App *app) {
     ui_listing_set_panels(listing, panels);
     ui_listing_set_visible_addr_cb(listing, controller_listing_visible_changed, app);
     ui_listing_set_search_focus_cb(listing, controller_focus_search, app);
+    ui_listing_set_addr_search_include_operand_refs(
+        listing,
+        app->search_addr_refs_check
+            ? gtk_check_button_get_active(GTK_CHECK_BUTTON(app->search_addr_refs_check))
+            : FALSE);
     ui_panels_set_reload_cb(panels, controller_reload_and_render, app);
     ui_panels_set_jump_cb(panels, controller_request_jump, app);
     ui_panels_set_segment_command_cb(panels, controller_segment_command, app);
@@ -597,10 +1016,7 @@ static void on_import_create(GtkButton *button, gpointer user_data) {
     app->project_path[0] = '\0';
 
     if (project_import(&app->project, bin_path_copy, proj_dir, load_addr) == 0) {
-        strncpy(app->project_path, proj_dir, sizeof(app->project_path) - 1);
-        app->pending_listing_addr = -1;
-        app->pending_listing_retries = 0;
-        controller_render(app);
+        app_open_project(app, proj_dir, TRUE);
     } else {
         GtkAlertDialog *alert = gtk_alert_dialog_new("Could not create project.");
         gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
@@ -713,16 +1129,7 @@ static void on_open_project_response(GObject *source, GAsyncResult *res, gpointe
     g_object_unref(file);
     if (!proj_dir) return;
 
-    project_close(&app->project);
-    app->project_path[0] = '\0';
-    if (project_open(&app->project, proj_dir) == 0) {
-        strncpy(app->project_path, proj_dir, sizeof(app->project_path) - 1);
-        controller_render(app);
-    } else {
-        GtkAlertDialog *alert = gtk_alert_dialog_new("Could not open project.");
-        gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
-        g_object_unref(alert);
-    }
+    app_open_project(app, proj_dir, TRUE);
     g_free(proj_dir);
 }
 
@@ -734,6 +1141,122 @@ static void on_open_project_clicked(GtkButton *button, gpointer user_data) {
     gtk_file_dialog_select_folder(dialog, GTK_WINDOW(app->window), NULL,
                                   on_open_project_response, app);
     g_object_unref(dialog);
+}
+
+static void on_recent_item_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    RecentItemCtx *ctx = user_data;
+    if (!ctx || !ctx->app) return;
+    app_open_project(ctx->app, ctx->path, TRUE);
+    if (ctx->dialog)
+        gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+}
+
+static void on_recent_dialog_destroy(GtkWidget *widget, gpointer user_data) {
+    (void)widget;
+    GList *children = (GList *)user_data;
+    for (GList *it = children; it; it = it->next)
+        g_free(it->data);
+    g_list_free(children);
+}
+
+static void on_open_recent_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    App *app = user_data;
+    if (!app) return;
+
+    if (app->recent_count <= 0) {
+        GtkAlertDialog *alert = gtk_alert_dialog_new("No recent projects yet.");
+        gtk_alert_dialog_show(alert, GTK_WINDOW(app->window));
+        g_object_unref(alert);
+        return;
+    }
+
+    GtkWidget *dlg = gtk_window_new();
+    gtk_window_set_title(GTK_WINDOW(dlg), "Open Recent");
+    gtk_window_set_modal(GTK_WINDOW(dlg), TRUE);
+    gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(app->window));
+    gtk_window_set_default_size(GTK_WINDOW(dlg), 680, -1);
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_widget_set_margin_top(box, 12);
+    gtk_widget_set_margin_bottom(box, 12);
+    gtk_widget_set_margin_start(box, 12);
+    gtk_widget_set_margin_end(box, 12);
+    gtk_window_set_child(GTK_WINDOW(dlg), box);
+
+    GList *ctx_list = NULL;
+    for (int i = 0; i < app->recent_count; i++) {
+        if (!app->recent_paths[i][0]) continue;
+        GtkWidget *btn = gtk_button_new_with_label(app->recent_paths[i]);
+        gtk_widget_set_halign(btn, GTK_ALIGN_FILL);
+        gtk_widget_set_hexpand(btn, TRUE);
+
+        RecentItemCtx *ctx = g_new0(RecentItemCtx, 1);
+        ctx->app = app;
+        ctx->dialog = dlg;
+        g_strlcpy(ctx->path, app->recent_paths[i], sizeof(ctx->path));
+        ctx_list = g_list_prepend(ctx_list, ctx);
+        g_signal_connect(btn, "clicked", G_CALLBACK(on_recent_item_clicked), ctx);
+        gtk_box_append(GTK_BOX(box), btn);
+    }
+
+    GtkWidget *close_btn = gtk_button_new_with_label("Close");
+    g_signal_connect_swapped(close_btn, "clicked", G_CALLBACK(gtk_window_destroy), dlg);
+    gtk_box_append(GTK_BOX(box), close_btn);
+
+    g_signal_connect(dlg, "destroy", G_CALLBACK(on_recent_dialog_destroy), ctx_list);
+    gtk_window_present(GTK_WINDOW(dlg));
+}
+
+static void on_auto_open_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->auto_open_last = gtk_check_button_get_active(button);
+    app_save_config(app);
+}
+
+static void on_highlight_ascii_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->highlight_ascii_runs = gtk_check_button_get_active(button);
+    app_render_hex_dump(app);
+}
+
+static void on_highlight_highbit_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->highlight_highbit_runs = gtk_check_button_get_active(button);
+    app_render_hex_dump(app);
+}
+
+static void on_highlight_ptr_in_rom_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->highlight_ptr_in_rom = gtk_check_button_get_active(button);
+    app_render_hex_dump(app);
+}
+
+static void on_highlight_ptr_out_rom_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->highlight_ptr_out_rom = gtk_check_button_get_active(button);
+    app_render_hex_dump(app);
+}
+
+static void on_ptr_ignore_ascii_overlap_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app) return;
+    app->ptr_ignore_ascii_overlap = gtk_check_button_get_active(button);
+    app_render_hex_dump(app);
+}
+
+static void on_search_addr_refs_toggled(GtkCheckButton *button, gpointer user_data) {
+    App *app = user_data;
+    if (!app || !app->listing_outer) return;
+    ui_listing_set_addr_search_include_operand_refs(
+        app->listing_outer,
+        gtk_check_button_get_active(button));
 }
 
 static void on_new_project_response(GObject *source, GAsyncResult *res, gpointer user_data) {
@@ -833,6 +1356,10 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     g_signal_connect(btn_open, "clicked", G_CALLBACK(on_open_project_clicked), app);
     gtk_box_append(GTK_BOX(toolbar), btn_open);
 
+    GtkWidget *btn_recent = gtk_button_new_with_label("Open Recent");
+    g_signal_connect(btn_recent, "clicked", G_CALLBACK(on_open_recent_clicked), app);
+    gtk_box_append(GTK_BOX(toolbar), btn_recent);
+
     GtkWidget *btn_new = gtk_button_new_with_label("New Project");
     g_signal_connect(btn_new, "clicked", G_CALLBACK(on_new_project_clicked), app);
     gtk_box_append(GTK_BOX(toolbar), btn_new);
@@ -844,6 +1371,12 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     GtkWidget *toolbar_spacer = gtk_label_new("");
     gtk_widget_set_hexpand(toolbar_spacer, TRUE);
     gtk_box_append(GTK_BOX(toolbar), toolbar_spacer);
+
+    app->auto_open_check = gtk_check_button_new_with_label("Auto-open last");
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(app->auto_open_check), app->auto_open_last);
+    g_signal_connect(app->auto_open_check, "toggled",
+                     G_CALLBACK(on_auto_open_toggled), app);
+    gtk_box_append(GTK_BOX(toolbar), app->auto_open_check);
 
     GtkWidget *btn_lst = gtk_button_new_with_label("Export .LST");
     g_signal_connect(btn_lst, "clicked", G_CALLBACK(on_export_lst_clicked), app);
@@ -885,6 +1418,11 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     app_render_hex_dump(app);
 
     gtk_window_present(GTK_WINDOW(app->window));
+
+    if (app->auto_open_last && app->last_project_path[0] &&
+        g_file_test(app->last_project_path, G_FILE_TEST_IS_DIR)) {
+        app_open_project(app, app->last_project_path, FALSE);
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -895,12 +1433,20 @@ int main(int argc, char **argv) {
     App app;
     memset(&app, 0, sizeof(App));
     app.ui_busy = FALSE;
+    app.highlight_ascii_runs = TRUE;
+    app.highlight_highbit_runs = FALSE;
+    app.highlight_ptr_in_rom = FALSE;
+    app.highlight_ptr_out_rom = FALSE;
+    app.ptr_ignore_ascii_overlap = FALSE;
+    app_load_persistence(&app);
 
     GtkApplication *gtk_app =
         gtk_application_new("io.github.z80bench", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(gtk_app, "activate", G_CALLBACK(activate), &app);
     int status = g_application_run(G_APPLICATION(gtk_app), argc, argv);
 
+    app_save_config(&app);
+    app_save_state(&app);
     project_close(&app.project);
     g_object_unref(gtk_app);
     return status;

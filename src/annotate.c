@@ -63,8 +63,6 @@ struct AnnData {
     Comment blocks[MAX_ANNOTATIONS];
     int nblocks;
     
-    Comment xrefs[MAX_ANNOTATIONS];
-    int nxrefs;
 };
 
 AnnData *annotate_load(const char *path) {
@@ -170,18 +168,6 @@ AnnData *annotate_load(const char *path) {
                         ann->nblocks++;
                     }
                 }
-            } else if (strcmp(section, "xref") == 0) {
-                if (strcmp(key, "offset") == 0) {
-                    if (ann->nxrefs < MAX_ANNOTATIONS) ann->xrefs[ann->nxrefs].offset = atoi(val);
-                } else if (strcmp(key, "text") == 0) {
-                    if (ann->nxrefs < MAX_ANNOTATIONS) {
-                        unescape_newlines(val);
-                        copy_text(ann->xrefs[ann->nxrefs].text, sizeof(ann->xrefs[ann->nxrefs].text), val);
-                        last_text = ann->xrefs[ann->nxrefs].text;
-                        last_text_sz = sizeof(ann->xrefs[ann->nxrefs].text);
-                        ann->nxrefs++;
-                    }
-                }
             }
         } else if (last_text) {
             /* Continuation line */
@@ -251,12 +237,6 @@ int annotate_save(const AnnData *ann, const char *path) {
         save_text_field(fp, "text", ann->blocks[i].text);
         fprintf(fp, "\n");
     }
-    for (int i = 0; i < ann->nxrefs; i++) {
-        fprintf(fp, "[xref]\noffset = %d\n", ann->xrefs[i].offset);
-        save_text_field(fp, "text", ann->xrefs[i].text);
-        fprintf(fp, "\n");
-    }
-
     fclose(fp);
     return 0;
 }
@@ -272,10 +252,6 @@ void annotate_get_meta_safe(const AnnData *ann, char *name, size_t name_sz,
         snprintf(name, name_sz, "%s", ann->name);
     }
     if (load_addr) *load_addr = ann->load_addr;
-}
-
-void annotate_get_meta(const AnnData *ann, char *name, int *load_addr) {
-    annotate_get_meta_safe(ann, name, name ? DISASM_LABEL_MAX : 0, load_addr);
 }
 
 const Region *annotate_get_regions(const AnnData *ann, int *nregions) {
@@ -297,44 +273,13 @@ void annotate_merge(DisasmLine *lines, int nlines, const AnnData *ann) {
         for (int j = 0; j < ann->nblocks; j++) {
             if (ann->blocks[j].offset == dl->offset) { copy_text(dl->block, sizeof(dl->block), ann->blocks[j].text); break; }
         }
-        for (int j = 0; j < ann->nxrefs; j++) {
-            if (ann->xrefs[j].offset == dl->offset) { copy_text(dl->xref, sizeof(dl->xref), ann->xrefs[j].text); break; }
-        }
     }
-}
-
-int xref_build(const DisasmLine *lines, int nlines, XrefEntry *out, int out_max) {
-    int nentries = 0;
-    for (int i = 0; i < nlines; i++) {
-        const DisasmLine *dl = &lines[i];
-        if (dl->rtype == RTYPE_ORPHAN) {
-            if (nentries < out_max) {
-                XrefEntry *xe = &out[nentries++];
-                memset(xe, 0, sizeof(XrefEntry));
-                xe->addr = dl->addr; xe->xtype = XREF_ORPHAN; xe->in_rom = 1;
-                xe->first_byte_count = dl->byte_count > 3 ? 3 : dl->byte_count;
-                memcpy(xe->first_bytes, dl->bytes, xe->first_byte_count);
-            }
-        }
-        if (dl->operand_addr != -1) {
-            int found = 0;
-            for (int j = 0; j < nentries; j++) {
-                if (out[j].xtype == XREF_ADDR && out[j].addr == dl->operand_addr) { out[j].ref_count++; found = 1; break; }
-            }
-            if (!found && nentries < out_max) {
-                XrefEntry *xe = &out[nentries++];
-                memset(xe, 0, sizeof(XrefEntry));
-                xe->addr = dl->operand_addr; xe->xtype = XREF_ADDR; xe->ref_count = 1;
-            }
-        }
-    }
-    return nentries;
 }
 
 /*
  * annotate_sync_from_lines()
  *
- * Rebuild the label/comment/block/xref arrays in AnnData from the live
+ * Rebuild the label/comment/block arrays in AnnData from the live
  * DisasmLine data.  Call this before annotate_save() so edits made through
  * the UI are persisted.  Regions and meta are left untouched.
  */
@@ -344,7 +289,6 @@ void annotate_sync_from_lines(AnnData *ann, const DisasmLine *lines, int nlines)
     ann->nlabels   = 0;
     ann->ncomments = 0;
     ann->nblocks   = 0;
-    ann->nxrefs    = 0;
 
     for (int i = 0; i < nlines; i++) {
         const DisasmLine *dl = &lines[i];
@@ -363,11 +307,6 @@ void annotate_sync_from_lines(AnnData *ann, const DisasmLine *lines, int nlines)
             ann->blocks[ann->nblocks].offset = dl->offset;
             copy_text(ann->blocks[ann->nblocks].text, sizeof(ann->blocks[ann->nblocks].text), dl->block);
             ann->nblocks++;
-        }
-        if (dl->xref[0] && ann->nxrefs < MAX_ANNOTATIONS) {
-            ann->xrefs[ann->nxrefs].offset = dl->offset;
-            copy_text(ann->xrefs[ann->nxrefs].text, sizeof(ann->xrefs[ann->nxrefs].text), dl->xref);
-            ann->nxrefs++;
         }
     }
 }
@@ -388,10 +327,4 @@ void annotate_set_regions(AnnData *ann, const Region *regions, int nregions) {
     int n = nregions < MAX_REGIONS ? nregions : MAX_REGIONS;
     memcpy(ann->regions, regions, n * sizeof(Region));
     ann->nregions = n;
-}
-
-int annotate_get_region_safe(const AnnData *ann, int i, Region *out) {
-    if (!ann || !out || i < 0 || i >= ann->nregions) return -1;
-    *out = ann->regions[i];
-    return 0;
 }

@@ -292,7 +292,7 @@ void project_sync_map_to_regions(Project *p) {
     /* Build a new list:
      * - keep the existing non-segment-driven regions
      * - carve any segment ranges out of them
-     * - add fresh ranges from MAP_DIRECT_BYTE / MAP_DEFINE_MSG entries
+     * - add fresh ranges from direct data map entries (byte/word/message)
      *
      * This keeps direct-byte / string segments nestable inside broader CODE
      * regions instead of forcing the user to split them manually. */
@@ -302,7 +302,9 @@ void project_sync_map_to_regions(Project *p) {
     /* Copy regions that are not segment-driven, trimming out any nested
      * segment ranges as we go. */
     for (int i = 0; i < nreg && nnew < 99; i++) {
-        if (old[i].type == RTYPE_DATA_BYTE || old[i].type == RTYPE_DATA_STRING)
+        if (old[i].type == RTYPE_DATA_BYTE ||
+            old[i].type == RTYPE_DATA_WORD ||
+            old[i].type == RTYPE_DATA_STRING)
             continue;
 
         Region trimmed[100];
@@ -311,7 +313,9 @@ void project_sync_map_to_regions(Project *p) {
 
         for (int m = 0; m < memmap_count(p->map); m++) {
             const MapEntry *me = memmap_get(p->map, m);
-            if (me->type != MAP_DIRECT_BYTE && me->type != MAP_DEFINE_MSG) continue;
+            if (me->type != MAP_DIRECT_BYTE &&
+                me->type != MAP_DIRECT_WORD &&
+                me->type != MAP_DEFINE_MSG) continue;
             region_subtract_segment(trimmed, &ntrimmed, p->load_addr, me);
             if (ntrimmed == 0) break;
         }
@@ -320,14 +324,20 @@ void project_sync_map_to_regions(Project *p) {
             new_regions[nnew++] = trimmed[t];
     }
 
-    /* Add regions from DIRECT_BYTE and DEFINE_MSG map entries */
+    /* Add regions from direct data map entries */
     for (int m = 0; m < memmap_count(p->map) && nnew < 99; m++) {
         const MapEntry *me = memmap_get(p->map, m);
-        if (me->type != MAP_DIRECT_BYTE && me->type != MAP_DEFINE_MSG) continue;
+        if (me->type != MAP_DIRECT_BYTE &&
+            me->type != MAP_DIRECT_WORD &&
+            me->type != MAP_DEFINE_MSG) continue;
         new_regions[nnew].offset = me->start - p->load_addr;
         new_regions[nnew].end    = me->end   - p->load_addr;
-        new_regions[nnew].type   = (me->type == MAP_DEFINE_MSG)
-                                   ? RTYPE_DATA_STRING : RTYPE_DATA_BYTE;
+        if (me->type == MAP_DEFINE_MSG)
+            new_regions[nnew].type = RTYPE_DATA_STRING;
+        else if (me->type == MAP_DIRECT_WORD)
+            new_regions[nnew].type = RTYPE_DATA_WORD;
+        else
+            new_regions[nnew].type = RTYPE_DATA_BYTE;
         nnew++;
     }
 

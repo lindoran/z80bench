@@ -57,6 +57,8 @@ void       ui_listing_set_visible_addr_cb(GtkWidget *listing_outer,
 void       ui_listing_set_search_focus_cb(GtkWidget *listing_outer,
                                           UIListingFocusSearchFn cb,
                                           gpointer data);
+void       ui_listing_set_addr_search_include_operand_refs(GtkWidget *listing_outer,
+                                                           gboolean include_refs);
 
 /* --------------------------------------------------------------------------
  * Module: UI Panels (ui_panels.c)
@@ -70,12 +72,5 @@ void ui_panels_set_reload_cb(GtkWidget *panels, void (*cb)(gpointer), gpointer d
 void ui_panels_set_jump_cb(GtkWidget *panels, void (*cb)(gpointer, int), gpointer data);
 void ui_panels_set_segment_command_cb(GtkWidget *panels, UISegmentCommandFn cb, gpointer data);
 void ui_panels_set_segment_save_cb(GtkWidget *panels, UISegmentSaveFn cb, gpointer data);
-void ui_panels_open_segment_editor(GtkWidget *panels, int start_offset, int end_offset);
-void ui_panels_open_segment_editor_prefill(GtkWidget *panels, int start_offset,
-                                           int end_offset, const char *name,
-                                           MapType type);
-void ui_panels_open_segment_editor_with_details(GtkWidget *panels, int start_offset,
-                                                int end_offset, const char *name,
-                                                const char *notes, MapType type);
 
 #endif /* Z80BENCH_H */

@@ -180,22 +180,25 @@ Long `text` values wrap with leading whitespace on continuation lines (INI-style
 Segment map. Named address ranges with a type. Used for display context in the
 UI and by the segment-to-region reconciler to control code/data layout.
 
-Direct-byte and define-message segments may sit inside broader CODE or DATA
-ranges. They do not overlap one another. When a segment is added, the broader
-regions are split around it.
+Direct-data segments (`DIRECT_BYTE`, `DIRECT_WORD`, `DEFINE_MSG`) may sit
+inside broader CODE or DATA ranges. They do not overlap one another. When a
+segment is added, the broader regions are split around it.
 
 ```
 # z80bench segment map
-# format: name<SPACE>start<SPACE>end<SPACE>type<SPACE>notes
-# types: ROM  RAM  VRAM  IO  SYSVARS  UNMAPPED
+# format: start<TAB>end<TAB>type<TAB>name<TAB>notes
+# types: ROM  RAM  VRAM  IO  SYSVARS  UNMAPPED  DIRECT_BYTE  DIRECT_WORD  DEFINE_MSG
 
-ROM         0x0000  0x3FFF  ROM       VZ200 ROM
-RAM         0x7800  0x7FFF  RAM       System RAM
-IO          0x00FE  0x00FE  IO        Keyboard port
+0x0000	0x3FFF	ROM	        ROM	        VZ200 ROM
+0x7800	0x7FFF	RAM	        RAM	        System RAM
+0x00FE	0x00FE	IO	        KBD_PORT	Keyboard port
+0x008B	0x008C	DIRECT_BYTE	bytes @ 0x008B-0x008C	Inline bytes
+0x1234	0x123B	DIRECT_WORD	words @ 0x1234-0x123B	Pointer table
 ```
 
-Fields are whitespace-separated. `notes` is everything after the fourth field.
-Ranges may overlap where the hardware warrants it.
+Fields are tab-separated. `notes` may include spaces. Parent ranges
+(`ROM`/`RAM`/`VRAM`/`IO`/`SYSVARS`) must be disjoint; direct-data ranges can
+nest inside parents but cannot overlap each other.
 
 ---
 

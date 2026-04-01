@@ -78,6 +78,7 @@ MapData *memmap_load(const char *path) {
             else if (strcmp(type_str, "IO")          == 0) e->type = MAP_IO;
             else if (strcmp(type_str, "SYSVARS")     == 0) e->type = MAP_SYSVARS;
             else if (strcmp(type_str, "DIRECT_BYTE") == 0) e->type = MAP_DIRECT_BYTE;
+            else if (strcmp(type_str, "DIRECT_WORD") == 0) e->type = MAP_DIRECT_WORD;
             else if (strcmp(type_str, "DEFINE_MSG")  == 0) e->type = MAP_DEFINE_MSG;
             else                                            e->type = MAP_UNMAPPED;
         }
@@ -105,6 +106,7 @@ int memmap_save(const MapData *map, const char *path) {
             case MAP_IO:          type_str = "IO"; break;
             case MAP_SYSVARS:     type_str = "SYSVARS"; break;
             case MAP_DIRECT_BYTE: type_str = "DIRECT_BYTE"; break;
+            case MAP_DIRECT_WORD: type_str = "DIRECT_WORD"; break;
             case MAP_DEFINE_MSG:  type_str = "DEFINE_MSG"; break;
             default: type_str = "UNMAPPED"; break;
         }

@@ -4,17 +4,33 @@
 name = monz80_z88dk
 load_addr = 0x0000
 
+[region]
+offset = 139
+end = 140
+type = DATA_BYTE
+
 [label]
 offset = 0
 name = RESET_00
 
+[label]
+offset = 8
+name = RESET_08
+
 [comment]
 offset = 0
-text = Reset level 00 123456asdfadsfffasdfasdffff
+text = RESET LEVEL 0
+
+[comment]
+offset = 8
+text = RESET LEVEL 8
 
 [block]
 offset = 0
-text = block comments
-              in a line
-              test 1234567891011121344480988889asdfasdfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+text = ************************************
+              BLOCK COMMENTS!! 
+              Multiple Lines 
+              
+              EVEN IN A BOX 
+              ************************************
 

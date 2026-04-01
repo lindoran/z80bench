@@ -16,13 +16,13 @@
 
 static const char * const map_type_names[] =
     { "ROM", "RAM", "VRAM", "IO", "SYSVARS", "UNMAPPED",
-      "Direct Byte Range", "Define Message Range", NULL };
+      "Direct Byte Range", "Direct Word Range", "Define Message Range", NULL };
 static const char * const map_type_edit_names[] =
     { "ROM", "RAM", "VRAM", "IO", "SYSVARS",
-      "Direct Byte Range", "Define Message Range", NULL };
+      "Direct Byte Range", "Direct Word Range", "Define Message Range", NULL };
 static const MapType map_type_edit_values[] =
     { MAP_ROM, MAP_RAM, MAP_VRAM, MAP_IO, MAP_SYSVARS,
-      MAP_DIRECT_BYTE, MAP_DEFINE_MSG };
+      MAP_DIRECT_BYTE, MAP_DIRECT_WORD, MAP_DEFINE_MSG };
 
 static const char * const sym_type_names[] =
     { "ROM_CALL", "VECTOR", "JUMP_LABEL", "WRITABLE", "PORT", "CONSTANT", NULL };
@@ -37,6 +37,7 @@ static const char *map_type_colour(MapType t) {
         case MAP_IO:          return "#EF9F27";
         case MAP_SYSVARS:     return "#5DCAA5";
         case MAP_DIRECT_BYTE: return "#A0804A";
+        case MAP_DIRECT_WORD: return "#C49B59";
         case MAP_DEFINE_MSG:  return "#5DCAA5";
         default:              return "#888";
     }
@@ -57,6 +58,15 @@ static const char *map_type_name(MapType t) {
     if (t < 0 || t >= MAP_DEFINE_MSG + 1)
         return "UNKNOWN";
     return map_type_names[t];
+}
+
+static const char *map_type_compact_name(MapType t) {
+    switch (t) {
+        case MAP_DIRECT_BYTE: return "DEFB";
+        case MAP_DIRECT_WORD: return "DEFW";
+        case MAP_DEFINE_MSG:  return "DEFM";
+        default:              return map_type_name(t);
+    }
 }
 
 static int map_edit_index_from_type(MapType t) {
@@ -163,7 +173,7 @@ typedef struct {
     GtkWidget    *close_btn;
     void        (*reload_cb)(gpointer);
     gpointer      reload_data;
-    gboolean      needs_reload;  /* set when a DIRECT_BYTE/DEFINE_MSG is added/removed */
+    gboolean      needs_reload;  /* set when direct-data segments are added/removed */
     int           selected_index;
     int           prefill_start;
     int           prefill_end;
@@ -228,7 +238,7 @@ static gboolean map_parse_int_field(MapEditCtx *ctx, GtkWidget *entry,
 }
 
 static gboolean map_entry_is_segment(MapType t) {
-    return t == MAP_DIRECT_BYTE || t == MAP_DEFINE_MSG;
+    return t == MAP_DIRECT_BYTE || t == MAP_DIRECT_WORD || t == MAP_DEFINE_MSG;
 }
 
 static gboolean map_entry_is_parent(MapType t) {
@@ -437,7 +447,7 @@ static void map_list_append_entry_row(GtkWidget *list, const MapEntry *e, int en
     gtk_box_append(GTK_BOX(rb), nl);
 
     char range[24];
-    snprintf(range, sizeof(range), "%04X-%04X", e->start, e->end);
+    snprintf(range, sizeof(range), "0x%04X-0x%04X", e->start, e->end);
     GtkWidget *rl = gtk_label_new(NULL);
     gtk_widget_add_css_class(rl, "monospace");
     char *rm = g_markup_printf_escaped(
@@ -449,7 +459,7 @@ static void map_list_append_entry_row(GtkWidget *list, const MapEntry *e, int en
     GtkWidget *tl = gtk_label_new(NULL);
     char *tm = g_markup_printf_escaped(
         "<span color='%s' size='small'>%s</span>",
-        map_type_colour(e->type), map_type_name(e->type));
+        map_type_colour(e->type), map_type_compact_name(e->type));
     gtk_label_set_markup(GTK_LABEL(tl), tm);
     g_free(tm);
     gtk_label_set_xalign(GTK_LABEL(tl), 1.0);
@@ -477,8 +487,8 @@ static void map_dialog_append_entry_row(MapEditCtx *ctx, const MapEntry *e,
     char name_text[DISASM_LABEL_MAX + 4];
     if (is_child) snprintf(name_text, sizeof(name_text), "%s", e->name);
     else snprintf(name_text, sizeof(name_text), "- %s", e->name);
-    snprintf(text, sizeof(text), "%-20s  %04X-%04X  %s",
-             name_text, e->start, e->end, map_type_name(e->type));
+    snprintf(text, sizeof(text), "%-20s  0x%04X-0x%04X  %s",
+             name_text, e->start, e->end, map_type_compact_name(e->type));
     GtkWidget *lbl = gtk_label_new(NULL);
     gtk_widget_add_css_class(lbl, "monospace");
     char *m = g_markup_printf_escaped("<span font_family='Monospace'>%s</span>", text);
@@ -717,11 +727,19 @@ static void segment_build_auto_name(MapEditCtx *ctx, char *buf, size_t buf_sz) {
 
     if (type == MAP_DIRECT_BYTE) {
         if (start == end)
-            snprintf(buf, buf_sz, "direct bytes @ 0x%04X", start);
+            snprintf(buf, buf_sz, "bytes @ 0x%04X", start);
         else
-            snprintf(buf, buf_sz, "direct bytes @ 0x%04X-0x%04X", start, end);
+            snprintf(buf, buf_sz, "bytes @ 0x%04X-0x%04X", start, end);
+    } else if (type == MAP_DIRECT_WORD) {
+        if (start == end)
+            snprintf(buf, buf_sz, "words @ 0x%04X", start);
+        else
+            snprintf(buf, buf_sz, "words @ 0x%04X-0x%04X", start, end);
     } else if (type == MAP_DEFINE_MSG) {
-        snprintf(buf, buf_sz, "message @ 0x%04X", start);
+        if (start == end)
+            snprintf(buf, buf_sz, "msg @ 0x%04X", start);
+        else
+            snprintf(buf, buf_sz, "msg @ 0x%04X-0x%04X", start, end);
     }
 }
 
@@ -876,7 +894,7 @@ static void on_map_update(GtkButton *btn, gpointer ud) {
             "Segments cannot overlap");
         gtk_alert_dialog_set_detail(
             alert,
-            "Direct-byte and define-message segments can sit inside a broader code "
+            "Direct-data segments (DEFB/DEFW/DEFM) can sit inside a broader code "
             "range, but they cannot overlap another segment. Overwrite the existing "
             "range instead.");
         gtk_alert_dialog_show(alert, GTK_WINDOW(ctx->dialog));
@@ -1065,7 +1083,7 @@ static void on_map_add(GtkButton *btn, gpointer ud) {
                     "Segments cannot overlap");
                 gtk_alert_dialog_set_detail(
                     alert,
-                    "Direct-byte and define-message segments can sit inside a "
+                    "Direct-data segments (DEFB/DEFW/DEFM) can sit inside a "
                     "broader code range, but they cannot overlap another segment. "
                     "Choose a different range or edit the existing segment.");
                 gtk_alert_dialog_show(alert, GTK_WINDOW(ctx->dialog));
@@ -1241,7 +1259,7 @@ static void open_segment_dialog(MapPanelCtx *pctx, int start_offset, int end_off
 
     segment_dialog_apply_prefill(ctx);
     if ((!ctx->have_name || !ctx->prefill_name[0]) &&
-        (type == MAP_DIRECT_BYTE || type == MAP_DEFINE_MSG))
+        (type == MAP_DIRECT_BYTE || type == MAP_DIRECT_WORD || type == MAP_DEFINE_MSG))
         segment_refresh_auto_name(ctx, FALSE);
     if (ctx->focus_index >= 0) {
         GtkListBoxRow *row = find_row_by_entry_index(ctx->dialog_list, ctx->focus_index);
@@ -1777,7 +1795,6 @@ typedef struct {
     GtkWidget  *label_entry;
     GtkWidget  *comment_entry;
     GtkWidget  *block_view;
-    GtkWidget  *xref_entry;
     DisasmLine *dl;
     int         line_index;
     int         updating;
@@ -1848,12 +1865,6 @@ static void on_comment_changed(GtkEditable *ed, gpointer ud) {
     if (ap->updating || !ap->dl) return;
     strncpy(ap->dl->comment, gtk_editable_get_text(ed), DISASM_COMMENT_MAX - 1);
     ui_listing_refresh_line(ap->listing_outer, ap->line_index);
-}
-
-static void on_xref_changed(GtkEditable *ed, gpointer ud) {
-    AnnotationPanel *ap = ud;
-    if (ap->updating || !ap->dl) return;
-    strncpy(ap->dl->xref, gtk_editable_get_text(ed), DISASM_XREF_MAX - 1);
 }
 
 static void on_block_changed(GtkTextBuffer *buf, gpointer ud) {
@@ -1934,14 +1945,6 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
     g_signal_connect(buf, "changed", G_CALLBACK(on_block_changed), ap);
     attach_focus_out(ap->block_view, ap);
 
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Xref"),    0, 3, 1, 1);
-    ap->xref_entry = gtk_entry_new();
-    gtk_widget_add_css_class(ap->xref_entry, "monospace");
-    gtk_grid_attach(GTK_GRID(grid), ap->xref_entry, 1, 3, 1, 1);
-    g_signal_connect(ap->xref_entry, "changed",
-                     G_CALLBACK(on_xref_changed), ap);
-    attach_focus_out(ap->xref_entry, ap);
-
     if (out_ap) *out_ap = ap;
     g_object_set_data_full(G_OBJECT(box), "ap", ap, (GDestroyNotify)g_free);
     return box;
@@ -1970,7 +1973,6 @@ void ui_panels_update_selection(GtkWidget *panels, DisasmLine *dl,
 
     gtk_editable_set_text(GTK_EDITABLE(ap->label_entry),   dl->label);
     gtk_editable_set_text(GTK_EDITABLE(ap->comment_entry), dl->comment);
-    gtk_editable_set_text(GTK_EDITABLE(ap->xref_entry),    dl->xref);
 
     GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(ap->block_view));
     gtk_text_buffer_set_text(buf, dl->block, -1);
@@ -2042,40 +2044,6 @@ void ui_panels_set_segment_save_cb(GtkWidget *panels, UISegmentSaveFn cb, gpoint
         if (ctx) {
             ctx->segment_save_cb = cb;
             ctx->segment_save_data = data;
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
-}
-
-void ui_panels_open_segment_editor(GtkWidget *panels, int start_offset, int end_offset) {
-    ui_panels_open_segment_editor_prefill(panels, start_offset, end_offset, NULL,
-                                          MAP_DIRECT_BYTE);
-}
-
-void ui_panels_open_segment_editor_prefill(GtkWidget *panels, int start_offset,
-                                           int end_offset, const char *name,
-                                           MapType type) {
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            open_segment_dialog(ctx, start_offset, end_offset, name, TRUE, type);
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
-}
-
-void ui_panels_open_segment_editor_with_details(GtkWidget *panels, int start_offset,
-                                                int end_offset, const char *name,
-                                                const char *notes, MapType type) {
-    (void)notes;
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            open_segment_dialog(ctx, start_offset, end_offset, name, TRUE, type);
             return;
         }
         child = gtk_widget_get_next_sibling(child);

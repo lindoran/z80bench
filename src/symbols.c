@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define MAX_SYMBOLS 1000
 
@@ -9,6 +10,11 @@ struct SymData {
     Symbol symbols[MAX_SYMBOLS];
     int nsymbols;
 };
+
+typedef struct {
+    int         addr;
+    const char *name;
+} AddrName;
 
 static void copy_text(char *dst, size_t dst_sz, const char *src) {
     if (!dst || dst_sz == 0) return;
@@ -102,20 +108,203 @@ void symbols_free(SymData *sym) {
     free(sym);
 }
 
-void symbols_resolve(DisasmLine *lines, int nlines, const SymData *sym) {
-    if (!sym) return;
-    for (int i = 0; i < nlines; i++) {
-        DisasmLine *dl = &lines[i];
-        if (dl->operand_addr != -1) {
-            for (int j = 0; j < sym->nsymbols; j++) {
-                if (sym->symbols[j].addr == dl->operand_addr) {
-                    copy_text(dl->sym_name, sizeof(dl->sym_name), sym->symbols[j].name);
-                    dl->sym_type = sym->symbols[j].type;
-                    break;
+static int addr_name_cmp(const void *a, const void *b) {
+    const AddrName *aa = (const AddrName *)a;
+    const AddrName *bb = (const AddrName *)b;
+    if (aa->addr < bb->addr) return -1;
+    if (aa->addr > bb->addr) return 1;
+    return 0;
+}
+
+static const char *lookup_addr_name(const AddrName *arr, int n, int addr) {
+    int lo = 0, hi = n - 1;
+    while (lo <= hi) {
+        int mid = lo + ((hi - lo) / 2);
+        if (arr[mid].addr == addr) {
+            while (mid > 0 && arr[mid - 1].addr == addr) mid--;
+            return arr[mid].name;
+        }
+        if (arr[mid].addr < addr) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return NULL;
+}
+
+static int is_ident_char(char c) {
+    return (c == '_') || isalnum((unsigned char)c);
+}
+
+static int find_matching_hex_literal(const char *s, int addr, int *out_start, int *out_end) {
+    if (!s) return 0;
+    unsigned int target = (unsigned int)addr & 0xFFFFU;
+    size_t n = strlen(s);
+
+    for (size_t i = 0; i < n; i++) {
+        char prev = (i > 0) ? s[i - 1] : '\0';
+        int start_ok = (i == 0) || !is_ident_char(prev);
+
+        if (start_ok &&
+            s[i] == '0' && i + 2 < n &&
+            (s[i + 1] == 'x' || s[i + 1] == 'X') &&
+            isxdigit((unsigned char)s[i + 2])) {
+            size_t j = i + 2;
+            while (j < n && isxdigit((unsigned char)s[j])) j++;
+            char next = (j < n) ? s[j] : '\0';
+            if (!is_ident_char(next)) {
+                char hex[17];
+                size_t len = j - (i + 2);
+                if (len >= sizeof(hex)) len = sizeof(hex) - 1;
+                memcpy(hex, s + i + 2, len);
+                hex[len] = '\0';
+                unsigned long v = strtoul(hex, NULL, 16) & 0xFFFFUL;
+                if ((unsigned int)v == target) {
+                    *out_start = (int)i;
+                    *out_end = (int)j;
+                    return 1;
+                }
+            }
+            continue;
+        }
+
+        if (start_ok && s[i] == '$' && i + 1 < n && isxdigit((unsigned char)s[i + 1])) {
+            size_t j = i + 1;
+            while (j < n && isxdigit((unsigned char)s[j])) j++;
+            char next = (j < n) ? s[j] : '\0';
+            if (!is_ident_char(next)) {
+                char hex[17];
+                size_t len = j - (i + 1);
+                if (len >= sizeof(hex)) len = sizeof(hex) - 1;
+                memcpy(hex, s + i + 1, len);
+                hex[len] = '\0';
+                unsigned long v = strtoul(hex, NULL, 16) & 0xFFFFUL;
+                if ((unsigned int)v == target) {
+                    *out_start = (int)i;
+                    *out_end = (int)j;
+                    return 1;
+                }
+            }
+            continue;
+        }
+
+        if (start_ok && isxdigit((unsigned char)s[i])) {
+            size_t j = i;
+            while (j < n && isxdigit((unsigned char)s[j])) j++;
+            if (j < n && (s[j] == 'h' || s[j] == 'H')) {
+                char next = (j + 1 < n) ? s[j + 1] : '\0';
+                if (!is_ident_char(next)) {
+                    char hex[17];
+                    size_t len = j - i;
+                    if (len >= sizeof(hex)) len = sizeof(hex) - 1;
+                    memcpy(hex, s + i, len);
+                    hex[len] = '\0';
+                    unsigned long v = strtoul(hex, NULL, 16) & 0xFFFFUL;
+                    if ((unsigned int)v == target) {
+                        *out_start = (int)i;
+                        *out_end = (int)(j + 1); /* include trailing h/H */
+                        return 1;
+                    }
                 }
             }
         }
     }
+    return 0;
+}
+
+static int format_operands_with_symbol(const DisasmLine *dl, const char *name,
+                                       char *out, size_t out_sz) {
+    if (!dl || !name || !name[0] || !out || out_sz == 0 || !dl->operands[0] || dl->operand_addr < 0)
+        return 0;
+
+    copy_text(out, out_sz, dl->operands);
+    int start = 0, end = 0;
+    if (!find_matching_hex_literal(out, dl->operand_addr, &start, &end))
+        return 0;
+
+    size_t prefix = (size_t)start;
+    size_t suffix = strlen(out + end);
+    size_t nlen = strlen(name);
+    if (prefix + nlen + suffix >= out_sz)
+        return 0;
+
+    char tmp[DISASM_OPERANDS_MAX];
+    memcpy(tmp, out, prefix);
+    memcpy(tmp + prefix, name, nlen);
+    memcpy(tmp + prefix + nlen, out + end, suffix);
+    tmp[prefix + nlen + suffix] = '\0';
+    copy_text(out, out_sz, tmp);
+    return 1;
+}
+
+void symbols_resolve(DisasmLine *lines, int nlines, const SymData *sym) {
+    if (!lines || nlines <= 0) return;
+
+    AddrName *labels = calloc((size_t)nlines, sizeof(AddrName));
+    int nlabels = 0;
+    if (labels) {
+        for (int i = 0; i < nlines; i++) {
+            if (lines[i].label[0]) {
+                labels[nlabels].addr = lines[i].addr;
+                labels[nlabels].name = lines[i].label;
+                nlabels++;
+            }
+        }
+        if (nlabels > 1)
+            qsort(labels, (size_t)nlabels, sizeof(AddrName), addr_name_cmp);
+    }
+
+    for (int i = 0; i < nlines; i++) {
+        DisasmLine *dl = &lines[i];
+        dl->sym_name[0] = '\0';
+        dl->sym_type = -1;
+
+        if (dl->operand_addr != -1) {
+            int allow_abs = opctx_has_absolute_operand_ref(dl);
+            int allow_const = opctx_has_constant_immediate_operand(dl);
+            if (!allow_abs && !allow_const)
+                continue;
+
+            const char *resolved = NULL;
+            if (sym) {
+                for (int j = 0; j < sym->nsymbols; j++) {
+                    if (sym->symbols[j].addr == dl->operand_addr) {
+                        if (!allow_abs && sym->symbols[j].type != SYM_CONSTANT)
+                            continue;
+                        resolved = sym->symbols[j].name;
+                        dl->sym_type = sym->symbols[j].type;
+                        break;
+                    }
+                }
+            }
+
+            if (!resolved && allow_abs && labels && nlabels > 0)
+                resolved = lookup_addr_name(labels, nlabels, dl->operand_addr);
+
+            if (resolved && resolved[0]) {
+                copy_text(dl->sym_name, sizeof(dl->sym_name), resolved);
+            }
+        }
+    }
+
+    free(labels);
+}
+
+void symbols_format_operands(const DisasmLine *dl, char *out, size_t out_sz) {
+    if (!out || out_sz == 0) return;
+    out[0] = '\0';
+    if (!dl) return;
+
+    copy_text(out, out_sz, dl->operands);
+    if (!dl->sym_name[0] || dl->operand_addr < 0)
+        return;
+
+    int allow_abs = opctx_has_absolute_operand_ref(dl);
+    int allow_const = opctx_has_constant_immediate_operand(dl);
+    if (!allow_abs && !allow_const)
+        return;
+    if (!allow_abs && dl->sym_type != SYM_CONSTANT)
+        return;
+
+    (void)format_operands_with_symbol(dl, dl->sym_name, out, out_sz);
 }
 
 SymData *symbols_new(void) { return calloc(1, sizeof(SymData)); }

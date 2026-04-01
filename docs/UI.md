@@ -6,7 +6,12 @@
 
 ## Current UI Behavior (Implemented)
 
-- Main window: toolbar + listing (left) + right panel stack (segments, symbols, annotation).
+- Main window: toolbar + listing (left) + right panel stack (segments, symbols, annotation)
+  with a bottom dock (hex dump + search).
+- Toolbar includes:
+  - `Open Project`, `Open Recent`, `New Project`, `Save`
+  - `Auto-open last` toggle
+  - `Export .LST`, `Export .ASM`
 - Side panels (`SEGMENTS` / `SYMBOLS`) do not maintain persistent row selection state.
   - Single click: jump listing.
   - Double click: open editor dialog.
@@ -21,6 +26,16 @@
 - Annotation `Label` edits sync to symbol table (`SYM_JUMP_LABEL`).
 - Symbol dialog edits for `SYM_JUMP_LABEL` sync back to listing/annotation labels.
 - Listing remains `GtkListBox` based (not virtualized `GtkListView` yet).
+- Listing search is `Find Next` driven (not live filtering). In mnemonic mode,
+  search matches mnemonic + symbol + label + operand text.
+- Segment list rows use compact direct-data badges:
+  - `DEFB` (direct byte), `DEFW` (direct word), `DEFM` (define message)
+- Hex dock includes configurable filters:
+  - `Text runs >=3`
+  - `High-bit >=3`
+  - `Addr in ROM`
+  - `Addr out ROM`
+  - `Skip text overlap`
 - References panel is still planned, not shipped.
 
 Desktop workbench application. GTK4, dark mode by default (follows system theme,
@@ -77,10 +92,9 @@ export buttons.
 - **Save** — write all modified text files to disk; no-op if clean
 - **Regen** — re-invoke z80dasm on all CODE regions, rewrite `listing.mnm`,
   reload listing. Shows confirmation dialog if unsaved annotation edits exist.
-- **Search** — monospace input, filters listing rows live as the user types.
-  Matches against address, mnemonic, operands, comment, and label fields.
-  A clear button (×) appears when the field is non-empty. Escape clears and
-  returns focus to the listing.
+- **Search** — monospace input plus `Find Next` workflow.
+  Search runs against the active mode (Addr/Mnem/Comment). In mnemonic mode,
+  matches include mnemonic, symbol, label, and operand text.
 - **Add Segment** — opens the Segment Editor dialog
 - **Add Symbol** — opens the Symbol Editor dialog
 - **Export .LST** — file save dialog, writes annotated listing
@@ -341,7 +355,6 @@ Fields:
 - Name (text input — assembler-safe identifier, validated)
 - Address (hex input)
 - Type (dropdown: ROM_CALL / VECTOR / JUMP_LABEL / WRITABLE / PORT / CONSTANT)
-- Notes (single-line text, becomes inline comment in `.sym` file)
 
 ### Segment Entry Editor
 
@@ -349,8 +362,7 @@ Fields:
 - Name (text input)
 - Start address (hex input)
 - End address (hex input)
-- Type (dropdown: ROM / RAM / VRAM / IO / SYSVARS / UNMAPPED / Direct Byte Range / Define Message Range)
-- Notes (text input)
+- Type (dropdown: ROM / RAM / VRAM / IO / SYSVARS / Direct Byte Range / Direct Word Range / Define Message Range)
 
 ### Export Options
 

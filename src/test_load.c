@@ -28,14 +28,14 @@
  *
  *   annotation get  <dir> <addr_hex>
  *   annotation set  <dir> <addr_hex> <field> <value>
- *     field: label | comment | block | xref
+ *     field: label | comment | block
  *   annotation list <dir>
  *   annotation list-range <dir> <from_hex> <to_hex>
  *
  *   line get        <dir> <addr_hex>
  *   line list       <dir> [from_hex [to_hex]]
  *
- * Types for segment: ROM RAM VRAM IO SYSVARS UNMAPPED DIRECT_BYTE DEFINE_MSG
+ * Types for segment: ROM RAM VRAM IO SYSVARS UNMAPPED DIRECT_BYTE DIRECT_WORD DEFINE_MSG
  * Types for symbol:  ROM_CALL VECTOR JUMP_LABEL WRITABLE PORT CONSTANT
  */
 
@@ -92,6 +92,7 @@ static const char *map_type_str(MapType t) {
         case MAP_SYSVARS:     return "SYSVARS";
         case MAP_UNMAPPED:    return "UNMAPPED";
         case MAP_DIRECT_BYTE: return "DIRECT_BYTE";
+        case MAP_DIRECT_WORD: return "DIRECT_WORD";
         case MAP_DEFINE_MSG:  return "DEFINE_MSG";
         default:              return "UNKNOWN";
     }
@@ -105,6 +106,7 @@ static MapType map_type_from_str(const char *s) {
     if (strcmp(s,"IO")==0)          return MAP_IO;
     if (strcmp(s,"SYSVARS")==0)     return MAP_SYSVARS;
     if (strcmp(s,"DIRECT_BYTE")==0) return MAP_DIRECT_BYTE;
+    if (strcmp(s,"DIRECT_WORD")==0) return MAP_DIRECT_WORD;
     if (strcmp(s,"DEFINE_MSG")==0)  return MAP_DEFINE_MSG;
     return MAP_UNMAPPED;
 }
@@ -303,7 +305,7 @@ static int cmd_segment_add(int argc, char **argv) {
     if (!p.map) p.map = memmap_new();
     int idx = memmap_count(p.map);
     memmap_add(p.map, &e);
-    if (e.type == MAP_DIRECT_BYTE || e.type == MAP_DEFINE_MSG) {
+    if (e.type == MAP_DIRECT_BYTE || e.type == MAP_DIRECT_WORD || e.type == MAP_DEFINE_MSG) {
         project_sync_map_to_regions(&p);
         /* Re-disassemble */
         int nregions; const Region *regions = annotate_get_regions(p.ann, &nregions);
@@ -327,7 +329,7 @@ static int cmd_segment_remove(int argc, char **argv) {
     int idx = atoi(argv[4]);
     MapEntry e = {0}; memmap_get_safe(p.map, idx, &e);
     if (memmap_remove(p.map, idx) != 0) { err("segment remove","invalid index"); project_close(&p); return 1; }
-    if (e.type == MAP_DIRECT_BYTE || e.type == MAP_DEFINE_MSG) {
+    if (e.type == MAP_DIRECT_BYTE || e.type == MAP_DIRECT_WORD || e.type == MAP_DEFINE_MSG) {
         project_sync_map_to_regions(&p);
         int nregions; const Region *regions = annotate_get_regions(p.ann, &nregions);
         p.nlines = disasm_range(p.rom, p.rom_size, p.load_addr, 0, p.rom_size-1,
@@ -453,7 +455,6 @@ static int cmd_annotation_get(int argc, char **argv) {
             json_escape(stdout, dl->label);
             printf(",\"comment\":"); json_escape(stdout, dl->comment);
             printf(",\"block\":");   json_escape(stdout, dl->block);
-            printf(",\"xref\":");    json_escape(stdout, dl->xref);
             printf(",\"mnemonic\":"); json_escape(stdout, dl->mnemonic);
             printf(",\"operands\":"); json_escape(stdout, dl->operands);
             printf(",\"rtype\":\"%s\"}\n", rtype_str(dl->rtype));
@@ -480,8 +481,7 @@ static int cmd_annotation_set(int argc, char **argv) {
         if      (strcmp(field,"label")==0)   strncpy(dl->label,   value, DISASM_LABEL_MAX-1);
         else if (strcmp(field,"comment")==0) strncpy(dl->comment, value, DISASM_COMMENT_MAX-1);
         else if (strcmp(field,"block")==0)   strncpy(dl->block,   value, DISASM_COMMENT_MAX-1);
-        else if (strcmp(field,"xref")==0)    strncpy(dl->xref,    value, DISASM_XREF_MAX-1);
-        else { err("annotation set","field must be label|comment|block|xref"); project_close(&p); return 1; }
+        else { err("annotation set","field must be label|comment|block"); project_close(&p); return 1; }
         break;
     }
     if (!found) { err("annotation set","address not found in listing"); project_close(&p); return 1; }
@@ -509,14 +509,13 @@ static int cmd_annotation_list(int argc, char **argv, int range_mode) {
     for (int i = 0; i < p.nlines; i++) {
         DisasmLine *dl = &p.lines[i];
         if (dl->addr < from_addr || dl->addr > to_addr) continue;
-        if (!dl->label[0] && !dl->comment[0] && !dl->block[0] && !dl->xref[0]) continue;
+        if (!dl->label[0] && !dl->comment[0] && !dl->block[0]) continue;
         if (!first) printf(",");
         first = 0;
         printf("{\"addr\":\"0x%04X\",\"label\":", dl->addr);
         json_escape(stdout, dl->label);
         printf(",\"comment\":"); json_escape(stdout, dl->comment);
         printf(",\"block\":");   json_escape(stdout, dl->block);
-        printf(",\"xref\":");    json_escape(stdout, dl->xref);
         printf("}");
     }
     printf("]}\n"); fflush(stdout);
@@ -662,14 +661,14 @@ static void print_help(void) {
     printf("  segment add     <dir> <start> <end> <type> <name> [notes]\n");
     printf("  segment remove  <dir> <index>\n");
     printf("  segment update  <dir> <index> <start> <end> <type> <name> [notes]\n");
-    printf("    types: ROM RAM VRAM IO SYSVARS UNMAPPED DIRECT_BYTE DEFINE_MSG\n\n");
+    printf("    types: ROM RAM VRAM IO SYSVARS UNMAPPED DIRECT_BYTE DIRECT_WORD DEFINE_MSG\n\n");
     printf("  symbol list     <dir>\n");
     printf("  symbol add      <dir> <name> <addr> <type> [notes]\n");
     printf("  symbol remove   <dir> <name>\n");
     printf("  symbol update   <dir> <name> <addr> <type> [notes]\n");
     printf("    types: ROM_CALL VECTOR JUMP_LABEL WRITABLE PORT CONSTANT\n\n");
     printf("  annotation get  <dir> <addr>\n");
-    printf("  annotation set  <dir> <addr> label|comment|block|xref <value>\n");
+    printf("  annotation set  <dir> <addr> label|comment|block <value>\n");
     printf("  annotation list <dir>\n");
     printf("  annotation list-range <dir> <from> <to>\n\n");
     printf("  line get        <dir> <addr>\n");

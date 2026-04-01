@@ -32,64 +32,6 @@ static char *shell_quote(const char *s) {
     return out;
 }
 
-/* Standard Z80 instruction sizes (1, 2, or 3 bytes) */
-static const unsigned char main_sizes[256] = {
-    1,3,3,1,1,1,2,1,1,1,3,1,1,1,2,1, 2,3,3,1,1,1,2,1,2,1,3,1,1,1,2,1,
-    2,3,3,1,1,1,2,1,2,1,3,1,1,1,2,1, 2,3,3,1,1,1,2,1,2,1,3,1,1,1,2,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,1,3,3,3,1,2,1,1,1,3,0,3,3,2,1, 1,1,3,2,3,1,2,1,1,1,3,2,3,0,2,1,
-    1,1,3,2,3,1,2,1,1,1,3,2,3,0,2,1, 1,1,3,1,3,1,2,1,1,1,3,1,3,0,2,1
-};
-
-/* ED-prefix instruction sizes (mostly 2 bytes, some 4 for 16-bit LD) */
-static const unsigned char ed_sizes[256] = {
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,4,4,2,2,2,2,2,2,4,4,2,2,2,2, 2,2,4,4,2,2,2,2,2,2,4,4,2,2,2,2,
-    2,2,4,4,2,2,2,2,2,2,4,4,2,2,2,2, 2,2,4,4,2,2,2,2,2,2,4,4,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-};
-
-/* IX/IY-prefix instruction sizes (mostly 2 or 3 bytes, some 4) */
-static const unsigned char ix_sizes[256] = {
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,4,4,2,2,2,3,2,2,2,4,2,2,2,3,2, 2,2,2,2,2,2,3,2,2,2,2,2,2,2,3,2,
-    2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2, 2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2,
-    3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    2,2,2,2,3,3,3,2,2,2,2,2,3,3,3,2, 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-};
-
-int disasm_instr_size(const unsigned char *rom, int offset, int rom_size) {
-    if (offset < 0 || offset >= rom_size) return 0;
-    
-    unsigned char op = rom[offset];
-    
-    if (op == 0xCB) {
-        return 2;
-    } else if (op == 0xED) {
-        if (offset + 1 >= rom_size) return 1; /* incomplete instruction */
-        return ed_sizes[rom[offset + 1]];
-    } else if (op == 0xDD || op == 0xFD) {
-        if (offset + 1 >= rom_size) return 1; /* incomplete instruction */
-        unsigned char next = rom[offset + 1];
-        if (next == 0xCB) {
-            return 4;
-        }
-        return ix_sizes[next];
-    }
-    
-    return main_sizes[op];
-}
-
 /* Helper to parse a single line of z80dasm output.
  * z80dasm -t format:  [label:]\t<mnemonic> <operands>\t\t;<addr>\t<bytes>\t<ascii>
  * The mnemonic and operands are in ONE tab-delimited field separated only by
@@ -146,23 +88,125 @@ static int is_orphan(const char *mnemonic, const char *operands) {
     return 0;
 }
 
-/* Helper to extract operand address */
-static int extract_operand_addr(const char *operands) {
-    /* Look for hex literals like 0x1234, 1234h, 01234h */
-    /* This is a simplified version; in a real implementation we'd need label lookup too */
-    const char *p = operands;
-    while (*p) {
-        if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
-            return (int)strtol(p + 2, NULL, 16);
-        }
-        if (isxdigit(*p)) {
-            char *end;
-            long val = strtol(p, &end, 16);
-            if (*end == 'h' || *end == 'H') return (int)val;
-        }
-        p++;
+static int is_ident_char(char c) {
+    return (c == '_') || isalnum((unsigned char)c);
+}
+
+static void format_hex_literal(char *out, size_t out_sz, unsigned long value,
+                               int digits_hint, int prefer_byte_width) {
+    int width;
+    if (prefer_byte_width && value <= 0xFFUL) {
+        width = 2;
+    } else {
+        width = (digits_hint <= 2 && value <= 0xFFUL) ? 2 : 4;
     }
-    return -1;
+    snprintf(out, out_sz, "0x%0*lX", width, value & 0xFFFFUL);
+}
+
+/* Normalize hex literal styles in operands to a single format:
+ *   $12, 12h, 0012h, 0x12  ->  0x12 / 0x0012 (2 or 4 digits)
+ * This makes listing/.lst/.asm render consistently because they all share dl->operands.
+ */
+static void normalize_operand_hex(char *operands, size_t operands_sz, int prefer_byte_width) {
+    if (!operands || operands_sz == 0 || !operands[0]) return;
+
+    char in[DISASM_OPERANDS_MAX];
+    strncpy(in, operands, sizeof(in) - 1);
+    in[sizeof(in) - 1] = '\0';
+
+    char out[DISASM_OPERANDS_MAX];
+    size_t oi = 0;
+    size_t n = strlen(in);
+
+    for (size_t i = 0; i < n && oi + 1 < sizeof(out); ) {
+        char prev = (i > 0) ? in[i - 1] : '\0';
+        int start_ok = (i == 0) || !is_ident_char(prev);
+        int matched = 0;
+
+        if (start_ok && in[i] == '$' && i + 1 < n && isxdigit((unsigned char)in[i + 1])) {
+            size_t j = i + 1;
+            while (j < n && isxdigit((unsigned char)in[j])) j++;
+            char next = (j < n) ? in[j] : '\0';
+            if (!is_ident_char(next)) {
+                char hex[17];
+                size_t dlen = j - (i + 1);
+                if (dlen >= sizeof(hex)) dlen = sizeof(hex) - 1;
+                memcpy(hex, in + i + 1, dlen);
+                hex[dlen] = '\0';
+                unsigned long v = strtoul(hex, NULL, 16);
+                char lit[16];
+                format_hex_literal(lit, sizeof(lit), v, (int)dlen, prefer_byte_width);
+                size_t llen = strlen(lit);
+                if (oi + llen < sizeof(out)) {
+                    memcpy(out + oi, lit, llen);
+                    oi += llen;
+                    i = j;
+                    matched = 1;
+                }
+            }
+        }
+
+        if (!matched && start_ok &&
+            in[i] == '0' && i + 2 < n &&
+            (in[i + 1] == 'x' || in[i + 1] == 'X') &&
+            isxdigit((unsigned char)in[i + 2])) {
+            size_t j = i + 2;
+            while (j < n && isxdigit((unsigned char)in[j])) j++;
+            char next = (j < n) ? in[j] : '\0';
+            if (!is_ident_char(next)) {
+                char hex[17];
+                size_t dlen = j - (i + 2);
+                if (dlen >= sizeof(hex)) dlen = sizeof(hex) - 1;
+                memcpy(hex, in + i + 2, dlen);
+                hex[dlen] = '\0';
+                unsigned long v = strtoul(hex, NULL, 16);
+                char lit[16];
+                format_hex_literal(lit, sizeof(lit), v, (int)dlen, prefer_byte_width);
+                size_t llen = strlen(lit);
+                if (oi + llen < sizeof(out)) {
+                    memcpy(out + oi, lit, llen);
+                    oi += llen;
+                    i = j;
+                    matched = 1;
+                }
+            }
+        }
+
+        if (!matched && start_ok && isxdigit((unsigned char)in[i])) {
+            size_t j = i;
+            while (j < n && isxdigit((unsigned char)in[j])) j++;
+            if (j < n && (in[j] == 'h' || in[j] == 'H')) {
+                char next = (j + 1 < n) ? in[j + 1] : '\0';
+                if (!is_ident_char(next)) {
+                    char hex[17];
+                    size_t dlen = j - i;
+                    if (dlen >= sizeof(hex)) dlen = sizeof(hex) - 1;
+                    memcpy(hex, in + i, dlen);
+                    hex[dlen] = '\0';
+                    unsigned long v = strtoul(hex, NULL, 16);
+                    char lit[16];
+                    format_hex_literal(lit, sizeof(lit), v, (int)dlen, prefer_byte_width);
+                    size_t llen = strlen(lit);
+                    if (oi + llen < sizeof(out)) {
+                        memcpy(out + oi, lit, llen);
+                        oi += llen;
+                        i = j + 1; /* consume trailing h/H */
+                        matched = 1;
+                    }
+                }
+            }
+        }
+
+        if (!matched) {
+            out[oi++] = in[i++];
+        }
+    }
+
+    out[oi] = '\0';
+    if (operands_sz > 0) {
+        strncpy(operands, out, operands_sz - 1);
+        operands[operands_sz - 1] = '\0';
+    }
 }
 
 int disasm_range(
@@ -311,6 +355,8 @@ int disasm_range(
 
                 /* Extract mnemonic and operands from the tab-indented part */
                 parse_z80dasm_line(line_buf, dl->mnemonic, dl->operands);
+                normalize_operand_hex(dl->operands, sizeof(dl->operands),
+                                      opctx_prefers_byte_hex_width(dl));
 
                 if (is_orphan(dl->mnemonic, dl->operands)) {
                     dl->rtype = RTYPE_ORPHAN;
@@ -319,7 +365,7 @@ int disasm_range(
                     snprintf(dl->operands, sizeof(dl->operands),
                              "0x%02X", rom[offset_from_comment]);
                 } else {
-                    dl->operand_addr = extract_operand_addr(dl->operands);
+                    dl->operand_addr = opctx_compute_operand_value(dl);
                 }
 
                 current_offset = offset_from_comment + dl->byte_count;
@@ -393,7 +439,7 @@ int disasm_range(
                         char *op = dl->operands;
                         for (int b = 0; b < chunk; b++) {
                             char tmp[8];
-                            snprintf(tmp, sizeof(tmp), b ? ",$%02X" : "$%02X",
+                            snprintf(tmp, sizeof(tmp), b ? ",0x%02X" : "0x%02X",
                                      rom[current_offset + b]);
                             int tlen = strlen(tmp);
                             if (op + tlen < dl->operands + DISASM_OPERANDS_MAX - 1) {
@@ -474,12 +520,13 @@ int disasm_read_mnm(const char          *path,
             } else {
                 dl->operands[0] = '\0';
             }
-
             if (offset >= 0 && count > 0) {
                 memcpy(dl->bytes, &rom[offset], count);
             }
+            normalize_operand_hex(dl->operands, sizeof(dl->operands),
+                                  opctx_prefers_byte_hex_width(dl));
             
-            dl->operand_addr = extract_operand_addr(dl->operands);
+            dl->operand_addr = opctx_compute_operand_value(dl);
             nlines++;
         }
     }
