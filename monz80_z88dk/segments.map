@@ -1,5 +1,0 @@
-# z80bench segment map
-# format: start<TAB>end<TAB>type<TAB>name<TAB>notes
-
-0x0000	0x0FB7	ROM	ROM	
-0x008B	0x008C	DIRECT_BYTE	bytes @ 0x008B-0x008C	

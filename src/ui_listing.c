@@ -33,15 +33,15 @@
 #define ROW_TYPE_BLOCK 1
 #define ROW_TYPE_LABEL 2
 
-static void scroll_row_visible(GtkWidget *list_box, GtkWidget *scrolled, GtkListBoxRow *row) {
-    if (!list_box || !scrolled || !row) return;
+static gboolean scroll_row_visible(GtkWidget *list_box, GtkWidget *scrolled, GtkListBoxRow *row) {
+    if (!list_box || !scrolled || !row) return FALSE;
 
     GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrolled));
-    if (!vadj) return;
+    if (!vadj) return FALSE;
 
     graphene_rect_t bounds;
     if (!gtk_widget_compute_bounds(GTK_WIDGET(row), GTK_WIDGET(list_box), &bounds))
-        return;
+        return FALSE;
 
     double top = bounds.origin.y;
     double bottom = top + bounds.size.height;
@@ -58,6 +58,8 @@ static void scroll_row_visible(GtkWidget *list_box, GtkWidget *scrolled, GtkList
         if (target > max_value) target = max_value;
         gtk_adjustment_set_value(vadj, target);
     }
+
+    return TRUE;
 }
 
 typedef struct {
@@ -487,6 +489,10 @@ gboolean ui_listing_select_address(GtkWidget *outer, int addr) {
 
     GtkListBoxRow *best_main = NULL;
     GtkListBoxRow *best_any = NULL;
+    GtkListBoxRow *nearest_ge_main = NULL;
+    GtkListBoxRow *nearest_lt_main = NULL;
+    int nearest_ge_addr = 0x7FFFFFFF;
+    int nearest_lt_addr = -1;
     int i = 0;
     while (TRUE) {
         GtkListBoxRow *row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), i);
@@ -502,18 +508,32 @@ gboolean ui_listing_select_address(GtkWidget *outer, int addr) {
                     break;
                 }
             }
+            if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "row-type")) == ROW_TYPE_MAIN) {
+                if (dl->addr >= addr && dl->addr < nearest_ge_addr) {
+                    nearest_ge_addr = dl->addr;
+                    nearest_ge_main = row;
+                }
+                if (dl->addr < addr && dl->addr > nearest_lt_addr) {
+                    nearest_lt_addr = dl->addr;
+                    nearest_lt_main = row;
+                }
+            }
         }
         i++;
     }
 
     GtkListBoxRow *best = best_main ? best_main : best_any;
+    if (!best)
+        best = nearest_ge_main ? nearest_ge_main : nearest_lt_main;
     if (!best) return FALSE;
     gtk_list_box_unselect_all(GTK_LIST_BOX(list_box));
     gtk_list_box_select_row(GTK_LIST_BOX(list_box), best);
     gtk_widget_grab_focus(GTK_WIDGET(best));
 
-    if (scrolled)
-        scroll_row_visible(list_box, scrolled, best);
+    if (scrolled) {
+        if (!scroll_row_visible(list_box, scrolled, best))
+            return FALSE;
+    }
 
     return TRUE;
 }
@@ -674,7 +694,7 @@ static gboolean do_search_text(GtkWidget *outer, ListingCtx *ctx, const char *te
             if (match) {
                 gtk_list_box_select_row(GTK_LIST_BOX(ctx->list_box), row);
                 gtk_widget_grab_focus(GTK_WIDGET(row));
-                scroll_row_visible(ctx->list_box, ctx->scrolled, row);
+                (void)scroll_row_visible(ctx->list_box, ctx->scrolled, row);
                 ctx->selected_row = idx;
                 return TRUE;
             }

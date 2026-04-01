@@ -783,13 +783,13 @@ static void map_commit_and_close(MapEditCtx *ctx) {
     gpointer save_data = ctx->segment_save_data;
     UISegmentSaveRequest req;
     req.needs_reload = needs;
-    req.have_jump = (ctx->have_pending_jump && needs);
+    req.have_jump = ctx->have_pending_jump;
     req.jump_addr = req.have_jump ? ctx->pending_jump_addr : -1;
     PANEL_LOG("map close commit needs=%d have_jump=%d jump=0x%04X map=%d selected=%d",
               needs ? 1 : 0, req.have_jump ? 1 : 0,
               req.have_jump ? (req.jump_addr & 0xFFFF) : 0xFFFF,
               memmap_count(ctx->project ? ctx->project->map : NULL), ctx->selected_index);
-    if (!req.have_jump && needs && ctx->selected_index >= 0) {
+    if (!req.have_jump && ctx->selected_index >= 0) {
         const MapEntry *e = memmap_get(ctx->project->map, ctx->selected_index);
         if (e) {
             req.have_jump = TRUE;
@@ -830,6 +830,7 @@ static gboolean on_map_dialog_close_request(GtkWindow *window, gpointer ud) {
 static void on_map_dialog_row_selected(GtkListBox *box, GtkListBoxRow *row, gpointer ud) {
     (void)box;
     MapEditCtx *ctx = ud;
+    if (!ctx || ctx->updating_form) return;
     if (!row) {
         ctx->selected_index = -1;
         if (ctx->update_btn)
@@ -883,8 +884,10 @@ static gboolean map_entry_overlaps_other_parent(MapEditCtx *ctx, const MapEntry 
 static void on_map_update(GtkButton *btn, gpointer ud) {
     MapEditCtx *ctx = ud;
     if (ctx->selected_index < 0) return;
-    segment_refresh_auto_name(ctx, TRUE);
+    /* Preserve a user-edited name; only fill it if the field is blank. */
+    segment_refresh_auto_name(ctx, FALSE);
 
+    int edited_index = ctx->selected_index;
     MapEntry e;
     if (!map_entry_from_form(ctx, &e)) return;
 
@@ -918,6 +921,7 @@ static void on_map_update(GtkButton *btn, gpointer ud) {
             return;
         if (exact_idx < ctx->selected_index) {
             ctx->selected_index--;
+            edited_index = ctx->selected_index;
         }
     }
 
@@ -930,12 +934,16 @@ static void on_map_update(GtkButton *btn, gpointer ud) {
         MapPanelCtx *pctx = g_object_get_data(G_OBJECT(ctx->panel_list), "map-panel-ctx");
         if (pctx) map_list_populate(pctx);
     }
+    ctx->updating_form = TRUE;
     map_dialog_populate(ctx);
+    ctx->selected_index = edited_index;
     if (ctx->dialog_list) {
-        GtkListBoxRow *row = find_row_by_entry_index(ctx->dialog_list, ctx->selected_index);
+        GtkListBoxRow *row = find_row_by_entry_index(ctx->dialog_list, edited_index);
         if (row)
             gtk_list_box_select_row(GTK_LIST_BOX(ctx->dialog_list), row);
     }
+    ctx->updating_form = FALSE;
+    map_dialog_set_entry(ctx, &e, edited_index);
 }
 
 static void clear_panel_selection_except(GtkWidget *panels, GtkWidget *except_list) {
@@ -1282,6 +1290,7 @@ static GtkWidget *ui_memmap_panel_new(Project *p, GtkWidget *window) {
     map_ensure_default_rom_segment(p);
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
     gtk_widget_set_margin_start(box, 10); gtk_widget_set_margin_end(box, 10);
+    gtk_widget_set_vexpand(box, TRUE);
 
     MapPanelCtx *ctx = g_new0(MapPanelCtx, 1);
     ctx->project = p; ctx->window = window;
@@ -1312,7 +1321,7 @@ static GtkWidget *ui_memmap_panel_new(Project *p, GtkWidget *window) {
     GtkWidget *sw = gtk_scrolled_window_new();
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_widget_set_size_request(sw, -1, 110);
+    gtk_widget_set_vexpand(sw, TRUE);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), list);
     gtk_box_append(GTK_BOX(box), sw);
 
@@ -1897,6 +1906,7 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
                                            AnnotationPanel **out_ap) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
     gtk_widget_set_margin_start(box, 10); gtk_widget_set_margin_end(box, 10);
+    gtk_widget_set_vexpand(box, TRUE);
 
     AnnotationPanel *ap = g_new0(AnnotationPanel, 1);
     ap->project       = p;
@@ -1913,6 +1923,8 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+    gtk_widget_set_vexpand(grid, TRUE);
+    gtk_widget_set_hexpand(grid, TRUE);
     gtk_box_append(GTK_BOX(box), grid);
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Label"),   0, 0, 1, 1);
@@ -1934,7 +1946,8 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
 
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Block"),   0, 2, 1, 1);
     GtkWidget *s = gtk_scrolled_window_new();
-    gtk_widget_set_size_request(s, -1, 80);
+    gtk_widget_set_vexpand(s, TRUE);
+    gtk_widget_set_hexpand(s, TRUE);
     ap->block_view = gtk_text_view_new();
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(ap->block_view), TRUE);
     gtk_widget_add_css_class(ap->block_view, "monospace");
@@ -1956,8 +1969,7 @@ static GtkWidget *ui_annotation_panel_new(Project *p,
 
 void ui_panels_update_selection(GtkWidget *panels, DisasmLine *dl,
                                  int line_index) {
-    GtkWidget *ann_panel = gtk_widget_get_last_child(panels);
-    AnnotationPanel *ap = g_object_get_data(G_OBJECT(ann_panel), "ap");
+    AnnotationPanel *ap = panels ? g_object_get_data(G_OBJECT(panels), "ann-ap") : NULL;
     if (!ap) return;
 
     ap->updating = 1;
@@ -1981,17 +1993,9 @@ void ui_panels_update_selection(GtkWidget *panels, DisasmLine *dl,
 }
 
 void ui_panels_refresh_symbols(GtkWidget *panels) {
-    /* The symbols panel is the third child (after memmap, sep, symbols, sep, ann) */
-    /* Walk children to find the one with a "sym-ctx" */
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        SymPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "sym-ctx");
-        if (ctx) {
-            sym_list_populate(ctx->panel_list, ctx->project, NULL);
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
+    SymPanelCtx *ctx = panels ? g_object_get_data(G_OBJECT(panels), "sym-ctx-root") : NULL;
+    if (ctx)
+        sym_list_populate(ctx->panel_list, ctx->project, NULL);
 }
 
 void ui_panels_clear_selection(GtkWidget *panels) {
@@ -1999,55 +2003,31 @@ void ui_panels_clear_selection(GtkWidget *panels) {
 }
 
 void ui_panels_set_reload_cb(GtkWidget *panels, void (*cb)(gpointer), gpointer data) {
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            ctx->reload_cb   = cb;
-            ctx->reload_data = data;
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
+    MapPanelCtx *ctx = panels ? g_object_get_data(G_OBJECT(panels), "map-ctx-root") : NULL;
+    if (!ctx) return;
+    ctx->reload_cb   = cb;
+    ctx->reload_data = data;
 }
 
 void ui_panels_set_jump_cb(GtkWidget *panels, void (*cb)(gpointer, int), gpointer data) {
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            ctx->jump_cb = cb;
-            ctx->jump_data = data;
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
+    MapPanelCtx *ctx = panels ? g_object_get_data(G_OBJECT(panels), "map-ctx-root") : NULL;
+    if (!ctx) return;
+    ctx->jump_cb = cb;
+    ctx->jump_data = data;
 }
 
 void ui_panels_set_segment_command_cb(GtkWidget *panels, UISegmentCommandFn cb, gpointer data) {
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            ctx->segment_cmd_cb = cb;
-            ctx->segment_cmd_data = data;
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
+    MapPanelCtx *ctx = panels ? g_object_get_data(G_OBJECT(panels), "map-ctx-root") : NULL;
+    if (!ctx) return;
+    ctx->segment_cmd_cb = cb;
+    ctx->segment_cmd_data = data;
 }
 
 void ui_panels_set_segment_save_cb(GtkWidget *panels, UISegmentSaveFn cb, gpointer data) {
-    GtkWidget *child = gtk_widget_get_first_child(panels);
-    while (child) {
-        MapPanelCtx *ctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (ctx) {
-            ctx->segment_save_cb = cb;
-            ctx->segment_save_data = data;
-            return;
-        }
-        child = gtk_widget_get_next_sibling(child);
-    }
+    MapPanelCtx *ctx = panels ? g_object_get_data(G_OBJECT(panels), "map-ctx-root") : NULL;
+    if (!ctx) return;
+    ctx->segment_save_cb = cb;
+    ctx->segment_save_data = data;
 }
 
 GtkWidget *ui_panels_new(Project *p, GtkWidget *window,
@@ -2056,32 +2036,47 @@ GtkWidget *ui_panels_new(Project *p, GtkWidget *window,
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_size_request(box, 340, -1);
     gtk_widget_set_hexpand(box, FALSE);
-    gtk_box_append(GTK_BOX(box), ui_memmap_panel_new(p, window));
-    gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-    gtk_box_append(GTK_BOX(box), ui_symbols_panel_new(p, window));
-    gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-    gtk_box_append(GTK_BOX(box),
-                   ui_annotation_panel_new(p, project_path, listing_outer, NULL));
+    GtkWidget *switcher = gtk_stack_switcher_new();
+    gtk_widget_set_margin_start(switcher, 6);
+    gtk_widget_set_margin_end(switcher, 6);
+    gtk_widget_set_margin_top(switcher, 6);
+    gtk_widget_set_margin_bottom(switcher, 4);
+    gtk_box_append(GTK_BOX(box), switcher);
 
-    GtkWidget *ann_panel = gtk_widget_get_last_child(box);
+    GtkWidget *stack = gtk_stack_new();
+    gtk_widget_set_hexpand(stack, TRUE);
+    gtk_widget_set_vexpand(stack, TRUE);
+    gtk_stack_set_transition_type(GTK_STACK(stack), GTK_STACK_TRANSITION_TYPE_NONE);
+    gtk_stack_switcher_set_stack(GTK_STACK_SWITCHER(switcher), GTK_STACK(stack));
+    gtk_box_append(GTK_BOX(box), stack);
+
+    GtkWidget *map_panel = ui_memmap_panel_new(p, window);
+    GtkWidget *sym_panel = ui_symbols_panel_new(p, window);
+    GtkWidget *ann_panel = ui_annotation_panel_new(p, project_path, listing_outer, NULL);
+    gtk_stack_add_titled(GTK_STACK(stack), map_panel, "segments", "Segments");
+    gtk_stack_add_titled(GTK_STACK(stack), sym_panel, "symbols", "Symbols");
+    gtk_stack_add_titled(GTK_STACK(stack), ann_panel, "annotation", "Annotation");
+
     AnnotationPanel *ap = g_object_get_data(G_OBJECT(ann_panel), "ap");
-    if (ap) ap->panels = box;
+    if (ap) {
+        ap->panels = box;
+        g_object_set_data(G_OBJECT(box), "ann-ap", ap);
+    }
 
-    GtkWidget *child = gtk_widget_get_first_child(box);
-    while (child) {
-        MapPanelCtx *mctx = g_object_get_data(G_OBJECT(child), "map-ctx");
-        if (mctx) {
-            mctx->listing_outer = listing_outer;
-            mctx->panels_root = box;
-            g_object_set_data(G_OBJECT(box), "map-list", mctx->panel_list);
-        }
-        SymPanelCtx *sctx = g_object_get_data(G_OBJECT(child), "sym-ctx");
-        if (sctx) {
-            sctx->listing_outer = listing_outer;
-            sctx->panels_root = box;
-            g_object_set_data(G_OBJECT(box), "sym-list", sctx->panel_list);
-        }
-        child = gtk_widget_get_next_sibling(child);
+    MapPanelCtx *mctx = g_object_get_data(G_OBJECT(map_panel), "map-ctx");
+    if (mctx) {
+        mctx->listing_outer = listing_outer;
+        mctx->panels_root = box;
+        g_object_set_data(G_OBJECT(box), "map-list", mctx->panel_list);
+        g_object_set_data(G_OBJECT(box), "map-ctx-root", mctx);
+    }
+
+    SymPanelCtx *sctx = g_object_get_data(G_OBJECT(sym_panel), "sym-ctx");
+    if (sctx) {
+        sctx->listing_outer = listing_outer;
+        sctx->panels_root = box;
+        g_object_set_data(G_OBJECT(box), "sym-list", sctx->panel_list);
+        g_object_set_data(G_OBJECT(box), "sym-ctx-root", sctx);
     }
 
     GtkGesture *click = gtk_gesture_click_new();

@@ -1,7 +1,0 @@
-; z80bench symbol file
-; assembler: z88dk/z80asm
-
-
-; [JUMP_LABEL]
-RESET_00         EQU     0x0000      ;              
-RESET_08         EQU     0x0008      ;              

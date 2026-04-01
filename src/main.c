@@ -19,6 +19,7 @@ typedef struct {
     GtkWidget *panels_outer;
     GtkWidget *hex_view;
     GtkWidget *search_entry;
+    GtkWidget *search_box;
     GtkWidget *search_mode_addr;
     GtkWidget *search_mode_mnem;
     GtkWidget *search_mode_comment;
@@ -44,7 +45,17 @@ typedef struct {
     char       last_project_path[512];
     int        recent_count;
     char       recent_paths[10][512];
+    int        saved_main_split;
+    int        saved_main_vsplit;
+    int        saved_dock_split;
+    gboolean   syncing_split_positions;
+    gboolean   pending_listing_jump_confirmed;
 } App;
+
+#define RESPONSIVE_NARROW_WIDTH 1100
+#define DEFAULT_MAIN_SPLIT 1011
+#define DEFAULT_DOCK_SPLIT 1011
+#define DEFAULT_MAIN_VSPLIT 379
 
 typedef struct {
     GtkWidget *paned;
@@ -106,6 +117,9 @@ static gboolean controller_apply_paned_position_idle(gpointer user_data);  /* fo
 static gboolean controller_unlock_window_size_idle(gpointer user_data);  /* forward */
 static void controller_listing_visible_changed(gpointer user_data, int addr);  /* forward */
 static void controller_focus_search(gpointer user_data);  /* forward */
+static void controller_apply_responsive_layout(App *app);  /* forward */
+static void on_window_size_changed(GObject *obj, GParamSpec *pspec,
+                                   gpointer user_data);  /* forward */
 
 static void app_render_hex_dump(App *app);  /* forward */
 static void app_sync_hex_to_addr(App *app, int addr);  /* forward */
@@ -117,6 +131,7 @@ static void on_main_paned_position_changed(GObject *obj, GParamSpec *pspec,
                                            gpointer user_data);  /* forward */
 static gboolean app_open_project(App *app, const char *proj_dir, gboolean show_alert);
 static void app_load_persistence(App *app);
+static void app_load_ui_defaults(App *app);
 static void app_save_config(App *app);
 static void app_save_state(App *app);
 static void app_add_recent_project(App *app, const char *proj_dir);
@@ -127,12 +142,20 @@ static int controller_pick_paned_position(App *app, int current_pos) {
     int max_pos = (win_w > 700) ? (win_w - 260) : 9000;
     if (max_pos < min_pos) max_pos = min_pos;
 
-    int fallback = (win_w > 0) ? (int)(win_w * 0.62) : 630;
+    /* Default left/right split baseline. */
+    int fallback = 965;
     if (fallback < min_pos) fallback = min_pos;
     if (fallback > max_pos) fallback = max_pos;
 
-    if (current_pos <= 0)
+    if (current_pos <= 0) {
+        if (app && app->saved_main_split > 0) {
+            int saved = app->saved_main_split;
+            if (saved < min_pos) saved = min_pos;
+            if (saved > max_pos) saved = max_pos;
+            return saved;
+        }
         return fallback;
+    }
     if (current_pos < min_pos)
         return min_pos;
     if (current_pos > max_pos)
@@ -410,6 +433,9 @@ static void app_load_persistence(App *app) {
     app->auto_open_last = FALSE;
     app->recent_count = 0;
     app->last_project_path[0] = '\0';
+    app->saved_main_split = -1;
+    app->saved_main_vsplit = -1;
+    app->saved_dock_split = -1;
 
     char *config_path = app_config_file_path();
     GKeyFile *config = g_key_file_new();
@@ -441,6 +467,38 @@ static void app_load_persistence(App *app) {
             }
             g_strfreev(recents);
         }
+        if (g_key_file_has_key(state, "ui", "main_split", NULL))
+            app->saved_main_split = g_key_file_get_integer(state, "ui", "main_split", NULL);
+        if (g_key_file_has_key(state, "ui", "main_vsplit", NULL))
+            app->saved_main_vsplit = g_key_file_get_integer(state, "ui", "main_vsplit", NULL);
+        if (g_key_file_has_key(state, "ui", "dock_split", NULL))
+            app->saved_dock_split = g_key_file_get_integer(state, "ui", "dock_split", NULL);
+    }
+    g_key_file_unref(state);
+    g_free(state_path);
+}
+
+static void app_load_ui_defaults(App *app) {
+    if (!app) return;
+
+    /* Baseline defaults when UI state is missing or disabled by policy. */
+    app->saved_main_split = DEFAULT_MAIN_SPLIT;
+    app->saved_dock_split = DEFAULT_DOCK_SPLIT;
+    app->saved_main_vsplit = DEFAULT_MAIN_VSPLIT;
+
+    /* If auto-open-last is disabled, do not restore UI sizes from state.ini. */
+    if (!app->auto_open_last)
+        return;
+
+    char *state_path = app_state_file_path();
+    GKeyFile *state = g_key_file_new();
+    if (g_key_file_load_from_file(state, state_path, G_KEY_FILE_NONE, NULL)) {
+        if (g_key_file_has_key(state, "ui", "main_split", NULL))
+            app->saved_main_split = g_key_file_get_integer(state, "ui", "main_split", NULL);
+        if (g_key_file_has_key(state, "ui", "main_vsplit", NULL))
+            app->saved_main_vsplit = g_key_file_get_integer(state, "ui", "main_vsplit", NULL);
+        if (g_key_file_has_key(state, "ui", "dock_split", NULL))
+            app->saved_dock_split = g_key_file_get_integer(state, "ui", "dock_split", NULL);
     }
     g_key_file_unref(state);
     g_free(state_path);
@@ -461,6 +519,22 @@ static void app_save_state(App *app) {
     char *state_path = app_state_file_path();
     GKeyFile *state = g_key_file_new();
 
+    if (app->paned) {
+        int pos = gtk_paned_get_position(GTK_PANED(app->paned));
+        if (pos > 0)
+            app->saved_main_split = pos;
+    }
+    if (app->main_vpaned) {
+        int pos = gtk_paned_get_position(GTK_PANED(app->main_vpaned));
+        if (pos > 0)
+            app->saved_main_vsplit = pos;
+    }
+    if (app->dock_paned) {
+        int pos = gtk_paned_get_position(GTK_PANED(app->dock_paned));
+        if (pos > 0)
+            app->saved_dock_split = pos;
+    }
+
     g_key_file_set_string(state, "session", "last_project",
                           app->last_project_path[0] ? app->last_project_path : "");
     if (app->recent_count > 0) {
@@ -471,6 +545,12 @@ static void app_save_state(App *app) {
     } else {
         g_key_file_set_string_list(state, "recent", "items", NULL, 0);
     }
+    if (app->saved_main_split > 0)
+        g_key_file_set_integer(state, "ui", "main_split", app->saved_main_split);
+    if (app->saved_main_vsplit > 0)
+        g_key_file_set_integer(state, "ui", "main_vsplit", app->saved_main_vsplit);
+    if (app->saved_dock_split > 0)
+        g_key_file_set_integer(state, "ui", "dock_split", app->saved_dock_split);
 
     app_write_key_file(state_path, state);
     g_key_file_unref(state);
@@ -523,10 +603,17 @@ static gboolean app_open_project(App *app, const char *proj_dir, gboolean show_a
     }
 
     g_strlcpy(app->project_path, proj_dir, sizeof(app->project_path));
+    app_load_ui_defaults(app);
+    if (app->paned)
+        gtk_paned_set_position(GTK_PANED(app->paned), 0);
+    if (app->dock_paned)
+        gtk_paned_set_position(GTK_PANED(app->dock_paned), 0);
+    if (app->main_vpaned && app->saved_main_vsplit > 0)
+        gtk_paned_set_position(GTK_PANED(app->main_vpaned), app->saved_main_vsplit);
     app->pending_listing_addr = -1;
     app->pending_listing_retries = 0;
-    app_add_recent_project(app, proj_dir);
     controller_render(app);
+    app_add_recent_project(app, proj_dir);
     return TRUE;
 }
 
@@ -558,10 +645,72 @@ static void controller_focus_search(gpointer user_data) {
     gtk_widget_grab_focus(app->search_entry);
 }
 
+static void controller_apply_responsive_layout(App *app) {
+    if (!app || !app->window || !app->paned)
+        return;
+
+    int win_w = gtk_widget_get_width(app->window);
+    int win_h = gtk_widget_get_height(app->window);
+    gboolean narrow = (win_w > 0 && win_w < RESPONSIVE_NARROW_WIDTH);
+    GtkOrientation orient = narrow ? GTK_ORIENTATION_VERTICAL
+                                   : GTK_ORIENTATION_HORIZONTAL;
+
+    gtk_orientable_set_orientation(GTK_ORIENTABLE(app->paned), orient);
+    gtk_paned_set_resize_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
+    gtk_paned_set_resize_end_child(GTK_PANED(app->paned), narrow ? TRUE : FALSE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(app->paned), TRUE);
+
+    if (app->dock_paned) {
+        gtk_orientable_set_orientation(GTK_ORIENTABLE(app->dock_paned), orient);
+        gtk_paned_set_resize_start_child(GTK_PANED(app->dock_paned), TRUE);
+        gtk_paned_set_resize_end_child(GTK_PANED(app->dock_paned), narrow ? TRUE : FALSE);
+        gtk_paned_set_shrink_start_child(GTK_PANED(app->dock_paned), TRUE);
+        gtk_paned_set_shrink_end_child(GTK_PANED(app->dock_paned), TRUE);
+    }
+
+    if (app->panels_outer) {
+        if (narrow) {
+            gtk_widget_set_size_request(app->panels_outer, -1, 280);
+            gtk_widget_set_hexpand(app->panels_outer, TRUE);
+            gtk_widget_set_vexpand(app->panels_outer, TRUE);
+        } else {
+            gtk_widget_set_size_request(app->panels_outer, 320, -1);
+            gtk_widget_set_hexpand(app->panels_outer, FALSE);
+            gtk_widget_set_vexpand(app->panels_outer, TRUE);
+        }
+    }
+
+    if (app->search_box) {
+        gtk_widget_set_size_request(app->search_box, narrow ? -1 : 260, -1);
+        gtk_widget_set_hexpand(app->search_box, narrow ? TRUE : FALSE);
+    }
+
+    int main_pos = narrow
+        ? ((win_h > 220) ? (int)(win_h * 0.58) : 420)
+        : controller_pick_paned_position(app, gtk_paned_get_position(GTK_PANED(app->paned)));
+    gtk_paned_set_position(GTK_PANED(app->paned), main_pos);
+    if (app->dock_paned)
+        gtk_paned_set_position(GTK_PANED(app->dock_paned), main_pos);
+}
+
+static void on_window_size_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+    (void)obj;
+    (void)pspec;
+    controller_apply_responsive_layout((App *)user_data);
+}
+
 static GtkWidget *build_bottom_dock(App *app) {
     GtkWidget *dock_split = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     int main_pos = app && app->paned ? gtk_paned_get_position(GTK_PANED(app->paned)) : 630;
-    if (main_pos <= 0) main_pos = 630;
+    if (main_pos <= 0) {
+        if (app && app->saved_dock_split > 0)
+            main_pos = app->saved_dock_split;
+        else if (app && app->saved_main_split > 0)
+            main_pos = app->saved_main_split;
+        else
+            main_pos = 630;
+    }
     gtk_paned_set_position(GTK_PANED(dock_split), main_pos);
     gtk_paned_set_resize_start_child(GTK_PANED(dock_split), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(dock_split), FALSE);
@@ -640,21 +789,13 @@ static GtkWidget *build_bottom_dock(App *app) {
     GtkWidget *find_next = gtk_button_new_with_label("Find Next");
     gtk_box_append(GTK_BOX(search_box), find_next);
 
-    GtkWidget *search_note = gtk_label_new(NULL);
-    char *nm = g_markup_printf_escaped(
-        "<span size='x-small' color='#666'>hex values in 0x0000 notation</span>");
-    gtk_label_set_markup(GTK_LABEL(search_note), nm);
-    g_free(nm);
-    gtk_label_set_xalign(GTK_LABEL(search_note), 0.5f);
-    gtk_box_append(GTK_BOX(search_box), search_note);
-
     GtkWidget *filter_title = gtk_label_new(NULL);
     char *fm = g_markup_printf_escaped(
         "<span size='small' color='#888'><b>HEX FILTERS</b></span>");
     gtk_label_set_markup(GTK_LABEL(filter_title), fm);
     g_free(fm);
     gtk_label_set_xalign(GTK_LABEL(filter_title), 0.0f);
-    gtk_widget_set_margin_top(filter_title, 6);
+    gtk_widget_set_margin_top(filter_title, 2);
     gtk_box_append(GTK_BOX(search_box), filter_title);
 
     GtkWidget *filters_grid = gtk_grid_new();
@@ -702,6 +843,7 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_widget_set_vexpand(gtk_widget_get_last_child(search_box), TRUE);
 
     app->search_entry = entry;
+    app->search_box = search_box;
     app->search_mode_addr = mode_addr;
     app->search_mode_mnem = mode_mnem;
     app->search_mode_comment = mode_comment;
@@ -712,17 +854,39 @@ static GtkWidget *build_bottom_dock(App *app) {
     gtk_paned_set_start_child(GTK_PANED(dock_split), hex_container);
     gtk_paned_set_end_child(GTK_PANED(dock_split), search_box);
     app->dock_paned = dock_split;
+    g_signal_connect(app->dock_paned, "notify::position",
+                     G_CALLBACK(on_main_paned_position_changed), app);
     return dock_split;
 }
 
 static void on_main_paned_position_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
-    (void)obj;
     (void)pspec;
     App *app = user_data;
-    if (!app || !app->paned || !app->dock_paned) return;
-    int pos = gtk_paned_get_position(GTK_PANED(app->paned));
-    if (pos > 0)
+    if (!app) return;
+    if (app->syncing_split_positions) return;
+
+    GtkWidget *source = GTK_WIDGET(obj);
+    if (source == app->main_vpaned) {
+        int pos = gtk_paned_get_position(GTK_PANED(app->main_vpaned));
+        if (pos > 0)
+            app->saved_main_vsplit = pos;
+        return;
+    }
+
+    if (!app->paned || !app->dock_paned) return;
+
+    int pos = gtk_paned_get_position(GTK_PANED(source));
+    if (pos <= 0) return;
+
+    app->syncing_split_positions = TRUE;
+    if (source == app->paned)
         gtk_paned_set_position(GTK_PANED(app->dock_paned), pos);
+    else if (source == app->dock_paned)
+        gtk_paned_set_position(GTK_PANED(app->paned), pos);
+    app->syncing_split_positions = FALSE;
+
+    app->saved_main_split = gtk_paned_get_position(GTK_PANED(app->paned));
+    app->saved_dock_split = gtk_paned_get_position(GTK_PANED(app->dock_paned));
 }
 
 static void controller_render(App *app) {
@@ -769,6 +933,7 @@ static void controller_render(App *app) {
     gtk_paned_set_position(GTK_PANED(app->paned), paned_pos);
     if (app->dock_paned)
         gtk_paned_set_position(GTK_PANED(app->dock_paned), paned_pos);
+    controller_apply_responsive_layout(app);
 
     app_render_hex_dump(app);
     if (app->project.nlines > 0)
@@ -776,7 +941,7 @@ static void controller_render(App *app) {
 
     PanedPosApply *pp = g_new0(PanedPosApply, 1);
     pp->paned = app->paned;
-    pp->pos = paned_pos;
+    pp->pos = gtk_paned_get_position(GTK_PANED(app->paned));
     g_idle_add(controller_apply_paned_position_idle, pp);
 
     WindowSizeUnlock *u = g_new0(WindowSizeUnlock, 1);
@@ -831,7 +996,8 @@ static void controller_reload_and_render(gpointer user_data) {
 static void controller_request_jump(gpointer user_data, int addr) {
     App *app = user_data;
     app->pending_listing_addr = addr;
-    app->pending_listing_retries = 120;
+    app->pending_listing_retries = 45;
+    app->pending_listing_jump_confirmed = FALSE;
     app_sync_hex_to_addr(app, addr);
     GUI_LOG(app, "jump request 0x%04X", addr & 0xFFFF);
 }
@@ -839,19 +1005,15 @@ static void controller_request_jump(gpointer user_data, int addr) {
 static gboolean controller_apply_pending_jump(gpointer user_data) {
     App *app = user_data;
     if (app->pending_listing_addr >= 0 && app->listing_outer) {
-        gboolean done = ui_listing_select_address(app->listing_outer,
-                                                  app->pending_listing_addr);
-        if (done) {
-            app->pending_listing_addr = -1;
-            app->pending_listing_retries = 0;
-            return G_SOURCE_REMOVE;
-        }
+        (void)ui_listing_select_address(app->listing_outer, app->pending_listing_addr);
         if (app->pending_listing_retries > 0) {
             app->pending_listing_retries--;
             return G_SOURCE_CONTINUE;
         }
         app->pending_listing_addr = -1;
         app->pending_listing_retries = 0;
+        app->pending_listing_jump_confirmed = FALSE;
+        return G_SOURCE_REMOVE;
     }
     return G_SOURCE_REMOVE;
 }
@@ -1340,6 +1502,11 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     app->window = gtk_application_window_new(gtk_app);
     gtk_window_set_title(GTK_WINDOW(app->window), "z80bench");
     gtk_window_set_default_size(GTK_WINDOW(app->window), 1180, 900);
+    gtk_window_maximize(GTK_WINDOW(app->window));
+    g_signal_connect(app->window, "notify::width",
+                     G_CALLBACK(on_window_size_changed), app);
+    g_signal_connect(app->window, "notify::height",
+                     G_CALLBACK(on_window_size_changed), app);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_window_set_child(GTK_WINDOW(app->window), main_box);
@@ -1390,7 +1557,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     app->paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     app->pending_listing_addr = -1;
     app->pending_listing_retries = 0;
-    gtk_paned_set_position(GTK_PANED(app->paned), 700);
+    gtk_paned_set_position(GTK_PANED(app->paned), 0);
     gtk_paned_set_resize_start_child(GTK_PANED(app->paned), TRUE);
     gtk_paned_set_shrink_start_child(GTK_PANED(app->paned), TRUE);
     gtk_paned_set_resize_end_child(GTK_PANED(app->paned), FALSE);
@@ -1404,12 +1571,16 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
 
     /* Vertical split: main content over bottom dock (hex + search) */
     app->main_vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
-    gtk_paned_set_position(GTK_PANED(app->main_vpaned), 580);
+    gtk_paned_set_position(
+        GTK_PANED(app->main_vpaned),
+        (app->saved_main_vsplit > 0) ? app->saved_main_vsplit : 375);
     gtk_paned_set_resize_start_child(GTK_PANED(app->main_vpaned), TRUE);
     gtk_paned_set_shrink_start_child(GTK_PANED(app->main_vpaned), TRUE);
-    gtk_paned_set_resize_end_child(GTK_PANED(app->main_vpaned), FALSE);
-    gtk_paned_set_shrink_end_child(GTK_PANED(app->main_vpaned), FALSE);
+    gtk_paned_set_resize_end_child(GTK_PANED(app->main_vpaned), TRUE);
+    gtk_paned_set_shrink_end_child(GTK_PANED(app->main_vpaned), TRUE);
     gtk_widget_set_vexpand(app->main_vpaned, TRUE);
+    g_signal_connect(app->main_vpaned, "notify::position",
+                     G_CALLBACK(on_main_paned_position_changed), app);
 
     gtk_paned_set_start_child(GTK_PANED(app->main_vpaned), app->paned);
     gtk_paned_set_end_child(GTK_PANED(app->main_vpaned), build_bottom_dock(app));
