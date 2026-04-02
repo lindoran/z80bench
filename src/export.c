@@ -203,9 +203,24 @@ int export_asm(const Project *p, const char *path) {
             write_block(fp, dl->block, 0);
         }
 
-        /* Label at col 0 */
-        if (dl->label[0])
-            fprintf(fp, "%s:\n", dl->label);
+        /* Label at col 0 — omit if it's already a symbol at this address (avoid z80asm duplicates) */
+        if (dl->label[0]) {
+            int is_sym = 0;
+            if (p->sym) {
+                for (int j = 0; j < symbols_count(p->sym); j++) {
+                    Symbol s;
+                    symbols_get_safe(p->sym, j, &s);
+                    if (s.addr == dl->addr && strcmp(s.name, dl->label) == 0) {
+                        is_sym = 1;
+                        break;
+                    }
+                }
+            }
+            if (!is_sym)
+                fprintf(fp, "%s:\n", dl->label);
+            else
+                fprintf(fp, "; %s: (defined in symbols.sym)\n", dl->label);
+        }
 
         /* Mnemonic + operands indented */
         char disp_ops[DISASM_OPERANDS_MAX];

@@ -300,8 +300,21 @@ int disasm_range(
                 char *tab = strchr(line_buf, '\t');
                 if (!tab) continue;
 
-                /* Must have a "; ADDR ..." comment to be a real instruction */
-                char *semi = strchr(line_buf, ';');
+                /* Must have a "; ADDR ..." comment to be a real instruction.
+                 * Use strrchr and check if it looks like an address (4 hex digits + tab).
+                 * Some lines might have semicolons in the operands or ASCII part. */
+                char *semi = NULL;
+                char *search = line_buf;
+                while ((search = strchr(search, ';'))) {
+                    if (isxdigit((unsigned char)search[1]) &&
+                        isxdigit((unsigned char)search[2]) &&
+                        isxdigit((unsigned char)search[3]) &&
+                        isxdigit((unsigned char)search[4]) &&
+                        search[5] == '\t') {
+                        semi = search;
+                    }
+                    search++;
+                }
                 if (!semi) continue;
 
                 /* Parse address and raw bytes from the -t comment.

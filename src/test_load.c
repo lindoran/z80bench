@@ -616,27 +616,14 @@ static int cmd_batch(int argc, char **argv) {
         }
         if (ntok < 2) continue;
 
-        /* Insert dir after verb if not already present */
-        /* Batch sub-commands are: <verb> <subverb> [args...]
-         * We auto-insert the project dir as the 3rd token */
+        /* Insert dir after sub-verb (argv[3]) */
         char *full[66];
         full[0] = tok[0];
         full[1] = tok[1];
-        full[2] = tok[2]; /* might be sub-verb like "list" */
-        /* check if tok[2] looks like a dir or is a sub-verb */
-        /* Convention: batch lines omit the dir (it's given once) */
-        /* So: "segment add 0x008B 0x008C DIRECT_BYTE myrange" */
-        /* becomes argv: prog segment <dir> add 0x008B ... */
-        /* Actually simpler: just inject dir as 3rd element */
-        full[0] = tok[0];
-        full[1] = tok[1];
-        if (ntok >= 3) full[2] = tok[2];
-        /* inject dir */
-        full[2] = (char *)dir;
-        /* shift remaining tokens right */
+        full[2] = (ntok >= 3) ? tok[2] : "";
+        full[3] = (char *)dir;
         int fntok = ntok + 1;
-        for (int i = ntok; i >= 3; i--) full[i] = tok[i-1];
-        full[2] = (char *)dir;
+        for (int i = 3; i < ntok; i++) full[i+1] = tok[i];
 
         int r = dispatch(fntok, full);
         if (r != 0) rc = r;
