@@ -50,6 +50,7 @@ typedef struct {
     int        saved_dock_split;
     gboolean   syncing_split_positions;
     gboolean   pending_listing_jump_confirmed;
+    GtkWidget *about_dialog;
 } App;
 
 #define RESPONSIVE_NARROW_WIDTH 1100
@@ -87,6 +88,8 @@ static void on_highlight_ptr_in_rom_toggled(GtkCheckButton *button, gpointer use
 static void on_highlight_ptr_out_rom_toggled(GtkCheckButton *button, gpointer user_data);
 static void on_ptr_ignore_ascii_overlap_toggled(GtkCheckButton *button, gpointer user_data);
 static void on_search_addr_refs_toggled(GtkCheckButton *button, gpointer user_data);
+static void on_about_clicked(GtkButton *button, gpointer user_data);
+static void on_about_dialog_destroy(GtkWidget *widget, gpointer user_data);
 
 /* --------------------------------------------------------------------------
  * ImportCtx — lives for the duration of the new-project dialog
@@ -902,7 +905,8 @@ static void controller_render(App *app) {
         gtk_widget_set_size_request(app->window, win_w, win_h);
 
     char title[512];
-    snprintf(title, sizeof(title), "z80bench — %s", app->project.name);
+    snprintf(title, sizeof(title), "%s %s — %s",
+             Z80BENCH_APP_NAME, Z80BENCH_VERSION_LABEL, app->project.name);
     gtk_window_set_title(GTK_WINDOW(app->window), title);
 
     GtkWidget *listing = ui_listing_new(&app->project, NULL);
@@ -1481,6 +1485,43 @@ static void on_export_asm_clicked(GtkButton *button, gpointer user_data) {
     export_asm(&app->project, path);
 }
 
+static void on_about_dialog_destroy(GtkWidget *widget, gpointer user_data) {
+    (void)widget;
+    App *app = user_data;
+    if (!app) return;
+    app->about_dialog = NULL;
+}
+
+static void on_about_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    App *app = user_data;
+    if (!app || !app->window) return;
+
+    if (app->about_dialog) {
+        gtk_window_present(GTK_WINDOW(app->about_dialog));
+        return;
+    }
+
+    GtkWidget *dialog = gtk_about_dialog_new();
+    gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dialog), "The Z80 Workbench");
+    gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), Z80BENCH_VERSION_LABEL);
+    gtk_about_dialog_set_comments(
+        GTK_ABOUT_DIALOG(dialog),
+        "z80bench\nGTK4 Z80 ROM annotation and export workbench.");
+    gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(dialog), GTK_LICENSE_MIT_X11);
+    gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dialog), Z80BENCH_GITHUB_URL);
+    gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(dialog), "GitHub Repository");
+    gtk_about_dialog_set_copyright(
+        GTK_ABOUT_DIALOG(dialog),
+        "Copyright (c) 2026 Dave Collins");
+    gtk_window_set_title(GTK_WINDOW(dialog), "About z80bench");
+    gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(app->window));
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    g_signal_connect(dialog, "destroy", G_CALLBACK(on_about_dialog_destroy), app);
+    app->about_dialog = dialog;
+    gtk_window_present(GTK_WINDOW(dialog));
+}
+
 /* --------------------------------------------------------------------------
  * App activation
  * -------------------------------------------------------------------------- */
@@ -1500,7 +1541,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     g_object_unref(provider);
 
     app->window = gtk_application_window_new(gtk_app);
-    gtk_window_set_title(GTK_WINDOW(app->window), "z80bench");
+    gtk_window_set_title(GTK_WINDOW(app->window), Z80BENCH_APP_NAME " " Z80BENCH_VERSION_LABEL);
     gtk_window_set_default_size(GTK_WINDOW(app->window), 1180, 900);
     gtk_window_maximize(GTK_WINDOW(app->window));
     g_signal_connect(app->window, "notify::width",
@@ -1552,6 +1593,10 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     GtkWidget *btn_asm = gtk_button_new_with_label("Export .ASM");
     g_signal_connect(btn_asm, "clicked", G_CALLBACK(on_export_asm_clicked), app);
     gtk_box_append(GTK_BOX(toolbar), btn_asm);
+
+    GtkWidget *btn_about = gtk_button_new_with_label("About");
+    g_signal_connect(btn_about, "clicked", G_CALLBACK(on_about_clicked), app);
+    gtk_box_append(GTK_BOX(toolbar), btn_about);
 
     /* Main content area (listing + side panels) */
     app->paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);

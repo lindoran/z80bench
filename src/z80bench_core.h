@@ -18,6 +18,10 @@
 #define Z80BENCH_ANN_FILE      "annotations.ann"
 #define Z80BENCH_MAP_FILE      "segments.map"
 #define Z80BENCH_SYM_FILE      "symbols.sym"
+#define Z80BENCH_APP_NAME      "z80bench"
+#define Z80BENCH_VERSION       "1.0"
+#define Z80BENCH_VERSION_LABEL "Version 1"
+#define Z80BENCH_GITHUB_URL    "https://github.com/lindoran/z80bench"
 
 #define DISASM_MNEMONIC_MAX   16
 #define DISASM_OPERANDS_MAX   64

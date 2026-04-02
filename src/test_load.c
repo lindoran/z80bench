@@ -649,7 +649,8 @@ static int cmd_batch(int argc, char **argv) {
  * ============================================================ */
 
 static void print_help(void) {
-    printf("z80bench-cli — AI/script interface for z80bench projects\n\n");
+    printf("z80bench-cli %s — AI/script interface for z80bench projects\n\n",
+           Z80BENCH_VERSION_LABEL);
     printf("Output: JSON-lines on stdout. Errors: JSON on stderr.\n\n");
     printf("Commands:\n");
     printf("  project create  <dir> <rom.bin> [load_addr]\n");
